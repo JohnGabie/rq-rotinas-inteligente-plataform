@@ -109,62 +109,63 @@ export function DeviceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">
             {isEditing ? 'Editar Dispositivo' : 'Adicionar Dispositivo'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {isEditing
               ? 'Atualize as informações do dispositivo.'
               : 'Preencha os dados para cadastrar um novo dispositivo.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Device Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome Amigável</Label>
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="name" className="text-xs sm:text-sm">Nome Amigável</Label>
             <Input
               id="name"
               placeholder="Ex: Tomada do Servidor"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className="text-sm sm:text-base"
             />
           </div>
 
           {/* Device Type Selection */}
-          <div className="space-y-2">
-            <Label>Tipo de Dispositivo</Label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label className="text-xs sm:text-sm">Tipo de Dispositivo</Label>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setType('tuya')}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200",
+                  "flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all duration-200",
                   type === 'tuya'
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-card text-muted-foreground hover:border-primary/50"
                 )}
               >
-                <Plug className="h-6 w-6" />
-                <span className="text-sm font-medium">Tuya</span>
-                <span className="text-xs opacity-70">Tomadas Inteligentes</span>
+                <Plug className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="text-xs sm:text-sm font-medium">Tuya</span>
+                <span className="text-[10px] sm:text-xs opacity-70 hidden xs:block">Tomadas Inteligentes</span>
               </button>
               <button
                 type="button"
                 onClick={() => setType('snmp')}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200",
+                  "flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-3 sm:p-4 transition-all duration-200",
                   type === 'snmp'
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-card text-muted-foreground hover:border-primary/50"
                 )}
               >
-                <Server className="h-6 w-6" />
-                <span className="text-sm font-medium">SNMP</span>
-                <span className="text-xs opacity-70">Réguas de Rede</span>
+                <Server className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="text-xs sm:text-sm font-medium">SNMP</span>
+                <span className="text-[10px] sm:text-xs opacity-70 hidden xs:block">Réguas de Rede</span>
               </button>
             </div>
           </div>
@@ -177,20 +178,21 @@ export function DeviceFormDialog({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="space-y-4"
+                className="space-y-3 sm:space-y-4"
               >
-                <div className="space-y-2">
-                  <Label htmlFor="deviceId">Device ID</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="deviceId" className="text-xs sm:text-sm">Device ID</Label>
                   <Input
                     id="deviceId"
                     placeholder="ID do dispositivo Tuya"
                     value={deviceId}
                     onChange={(e) => setDeviceId(e.target.value)}
                     required
+                    className="text-sm sm:text-base"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="localKey">Local Key</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="localKey" className="text-xs sm:text-sm">Local Key</Label>
                   <Input
                     id="localKey"
                     placeholder="Chave local do dispositivo"
@@ -198,6 +200,7 @@ export function DeviceFormDialog({
                     onChange={(e) => setLocalKey(e.target.value)}
                     required
                     type="password"
+                    className="text-sm sm:text-base"
                   />
                 </div>
               </motion.div>
@@ -207,31 +210,33 @@ export function DeviceFormDialog({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="space-y-4"
+                className="space-y-3 sm:space-y-4"
               >
-                <div className="space-y-2">
-                  <Label htmlFor="ip">Endereço IP</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="ip" className="text-xs sm:text-sm">Endereço IP</Label>
                   <Input
                     id="ip"
                     placeholder="192.168.1.100"
                     value={ip}
                     onChange={(e) => setIp(e.target.value)}
                     required
+                    className="text-sm sm:text-base"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="community">Community String</Label>
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="community" className="text-xs sm:text-sm">Community</Label>
                     <Input
                       id="community"
                       placeholder="public"
                       value={communityString}
                       onChange={(e) => setCommunityString(e.target.value)}
                       required
+                      className="text-sm sm:text-base"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="port">Porta</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="port" className="text-xs sm:text-sm">Porta</Label>
                     <Input
                       id="port"
                       placeholder="161"
@@ -239,6 +244,7 @@ export function DeviceFormDialog({
                       onChange={(e) => setPort(e.target.value)}
                       type="number"
                       required
+                      className="text-sm sm:text-base"
                     />
                   </div>
                 </div>
@@ -246,22 +252,22 @@ export function DeviceFormDialog({
             )}
           </AnimatePresence>
 
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <DialogFooter className="flex-col gap-2 sm:flex-row pt-2">
             {isEditing && onDelete && (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleDelete}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto text-xs sm:text-sm h-8 sm:h-10"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Remover
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="text-xs sm:text-sm h-8 sm:h-10">
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="text-xs sm:text-sm h-8 sm:h-10">
               {isEditing ? 'Salvar Alterações' : 'Adicionar'}
             </Button>
           </DialogFooter>
