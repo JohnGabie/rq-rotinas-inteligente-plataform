@@ -64,58 +64,59 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Stats Summary */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4"
+          className="mb-4 sm:mb-8 grid grid-cols-4 gap-2 sm:gap-4"
         >
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-2xl font-bold text-foreground">{devices.length}</p>
-            <p className="text-sm text-muted-foreground">Dispositivos</p>
+          <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
+            <p className="text-lg sm:text-2xl font-bold text-foreground">{devices.length}</p>
+            <p className="text-[10px] sm:text-sm text-muted-foreground">Dispositivos</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-2xl font-bold text-primary">{onlineCount}</p>
-            <p className="text-sm text-muted-foreground">Online</p>
+          <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
+            <p className="text-lg sm:text-2xl font-bold text-primary">{onlineCount}</p>
+            <p className="text-[10px] sm:text-sm text-muted-foreground">Online</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-2xl font-bold text-foreground">{routines.length}</p>
-            <p className="text-sm text-muted-foreground">Rotinas</p>
+          <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
+            <p className="text-lg sm:text-2xl font-bold text-foreground">{routines.length}</p>
+            <p className="text-[10px] sm:text-sm text-muted-foreground">Rotinas</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-2xl font-bold text-primary">{activeRoutinesCount}</p>
-            <p className="text-sm text-muted-foreground">Ativas</p>
+          <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
+            <p className="text-lg sm:text-2xl font-bold text-primary">{activeRoutinesCount}</p>
+            <p className="text-[10px] sm:text-sm text-muted-foreground">Ativas</p>
           </div>
         </motion.div>
 
-        <Tabs defaultValue="devices" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-card">
-            <TabsTrigger value="devices" className="gap-2">
-              <Plug className="h-4 w-4" />
+        <Tabs defaultValue="devices" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2 bg-card h-10 sm:h-11">
+            <TabsTrigger value="devices" className="gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Plug className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Dispositivos
             </TabsTrigger>
-            <TabsTrigger value="routines" className="gap-2">
-              <Calendar className="h-4 w-4" />
+            <TabsTrigger value="routines" className="gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Rotinas
             </TabsTrigger>
           </TabsList>
 
           {/* Devices Tab */}
-          <TabsContent value="devices" className="space-y-6">
+          <TabsContent value="devices" className="space-y-4 sm:space-y-6">
             <MasterSwitch devices={devices} onToggleAll={toggleAllDevices} />
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-foreground">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base sm:text-xl font-semibold text-foreground">
                 Seus Dispositivos
               </h2>
-              <Button onClick={handleAddDevice} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar
+              <Button onClick={handleAddDevice} className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4">
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Adicionar</span>
+                <span className="xs:hidden">Novo</span>
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {devices.map((device, index) => (
                 <motion.div
                   key={device.id}
@@ -133,17 +134,17 @@ const Index = () => {
             </div>
 
             {devices.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16">
-                <Plug className="h-12 w-12 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
+                <Plug className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="font-medium text-foreground">
+                  <p className="font-medium text-foreground text-sm sm:text-base">
                     Nenhum dispositivo cadastrado
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Adicione seu primeiro dispositivo para começar
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Adicione seu primeiro dispositivo
                   </p>
                 </div>
-                <Button onClick={handleAddDevice} className="gap-2">
+                <Button onClick={handleAddDevice} className="gap-2 text-xs sm:text-sm">
                   <Plus className="h-4 w-4" />
                   Adicionar Dispositivo
                 </Button>
@@ -152,18 +153,19 @@ const Index = () => {
           </TabsContent>
 
           {/* Routines Tab */}
-          <TabsContent value="routines" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-foreground">
+          <TabsContent value="routines" className="space-y-4 sm:space-y-6">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base sm:text-xl font-semibold text-foreground">
                 Suas Rotinas
               </h2>
-              <Button onClick={handleAddRoutine} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Criar Rotina
+              <Button onClick={handleAddRoutine} className="gap-1.5 sm:gap-2 text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4">
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Criar Rotina</span>
+                <span className="xs:hidden">Nova</span>
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2 sm:gap-4 sm:grid-cols-2">
               {routines.map((routine, index) => (
                 <motion.div
                   key={routine.id}
@@ -182,17 +184,17 @@ const Index = () => {
             </div>
 
             {routines.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-16">
-                <Calendar className="h-12 w-12 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="font-medium text-foreground">
+                  <p className="font-medium text-foreground text-sm sm:text-base">
                     Nenhuma rotina criada
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Automatize seus dispositivos criando rotinas
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Automatize seus dispositivos
                   </p>
                 </div>
-                <Button onClick={handleAddRoutine} className="gap-2">
+                <Button onClick={handleAddRoutine} className="gap-2 text-xs sm:text-sm">
                   <Plus className="h-4 w-4" />
                   Criar Rotina
                 </Button>

@@ -18,37 +18,37 @@ export function MasterSwitch({ devices, onToggleAll }: MasterSwitchProps) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:justify-between"
+      className="flex flex-col items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border border-border bg-card p-4 sm:p-6 sm:flex-row sm:justify-between"
     >
       <div className="text-center sm:text-left">
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="text-base sm:text-lg font-semibold text-foreground">
           Controle Geral
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           {onlineOnCount} de {onlineDevices.length} dispositivos ligados
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
         <Button
           variant="master"
-          size="lg"
+          size="default"
           onClick={() => onToggleAll(true)}
           disabled={allOn}
-          className="gap-2"
+          className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm h-9 sm:h-11 px-3 sm:px-4"
         >
-          <Power className="h-5 w-5" />
-          Ligar Tudo
+          <Power className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden xs:inline">Ligar</span> Tudo
         </Button>
         <Button
           variant="masterOff"
-          size="lg"
+          size="default"
           onClick={() => onToggleAll(false)}
           disabled={!someOn}
-          className="gap-2"
+          className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm h-9 sm:h-11 px-3 sm:px-4"
         >
-          <PowerOff className="h-5 w-5" />
-          Desligar Tudo
+          <PowerOff className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden xs:inline">Desligar</span> Tudo
         </Button>
       </div>
     </motion.div>

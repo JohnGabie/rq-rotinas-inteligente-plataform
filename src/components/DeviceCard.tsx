@@ -22,7 +22,7 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-card p-5 card-hover cursor-pointer",
+        "relative overflow-hidden rounded-xl border bg-card p-3 sm:p-5 card-hover cursor-pointer",
         isOn ? "border-primary/30 device-glow-on" : "border-border",
         !isOnline && "opacity-60"
       )}
@@ -33,43 +33,43 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
       )}
 
-      <div className="relative flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
+      <div className="relative flex items-start justify-between gap-2 sm:gap-4">
+        <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
           {/* Device Icon with status indicator */}
           <div
             className={cn(
-              "relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300",
+              "relative flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg sm:rounded-xl transition-all duration-300",
               isOn ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
             )}
           >
-            <DeviceIcon className="h-6 w-6" />
+            <DeviceIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             {/* Power indicator dot */}
             <span
               className={cn(
-                "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-card transition-colors duration-300",
+                "absolute -right-0.5 -top-0.5 sm:-right-1 sm:-top-1 h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border-2 border-card transition-colors duration-300",
                 isOn ? "bg-primary animate-pulse-glow" : "bg-device-off"
               )}
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <h3 className="font-semibold text-foreground">{device.name}</h3>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
+            <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{device.name}</h3>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium",
+                  "inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium",
                   isOnline ? "text-primary" : "text-device-offline"
                 )}
               >
                 {isOnline ? (
-                  <Wifi className="h-3 w-3" />
+                  <Wifi className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 ) : (
-                  <WifiOff className="h-3 w-3" />
+                  <WifiOff className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 )}
-                {isOnline ? "Online" : "Desconectado"}
+                {isOnline ? "Online" : "Offline"}
               </span>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs text-muted-foreground uppercase">
+              <span className="text-[10px] sm:text-xs text-muted-foreground hidden xs:inline">•</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground uppercase hidden xs:inline">
                 {device.type}
               </span>
             </div>
@@ -78,7 +78,7 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
 
         {/* Toggle Switch */}
         <div
-          className="flex flex-col items-end gap-2"
+          className="flex flex-col items-end gap-1 sm:gap-2 shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
           <Switch
@@ -87,7 +87,7 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
             disabled={!isOnline}
             aria-label={`${isOn ? 'Desligar' : 'Ligar'} ${device.name}`}
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[10px] sm:text-xs text-muted-foreground">
             {isOn ? 'Ligado' : 'Desligado'}
           </span>
         </div>
@@ -96,7 +96,7 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
       {/* Bottom status bar */}
       <div
         className={cn(
-          "absolute bottom-0 left-0 right-0 h-1 transition-all duration-500",
+          "absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 transition-all duration-500",
           isOn ? "bg-gradient-to-r from-primary/50 via-primary to-primary/50" : "bg-transparent"
         )}
       />
