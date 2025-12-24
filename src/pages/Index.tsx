@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Plug, Calendar } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -7,11 +7,16 @@ import { MasterSwitch } from '@/components/MasterSwitch';
 import { DeviceFormDialog } from '@/components/DeviceFormDialog';
 import { RoutineCard } from '@/components/RoutineCard';
 import { RoutineWizard } from '@/components/RoutineWizard';
+import { SearchInput } from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDevices } from '@/hooks/useDevices';
 import { useRoutines } from '@/hooks/useRoutines';
 import { Device, Routine } from '@/types/device';
+import { cn } from '@/lib/utils';
+
+type DeviceFilter = 'all' | 'online' | 'offline';
+type RoutineFilter = 'all' | 'active' | 'inactive';
 
 const Index = () => {
   const {
@@ -37,6 +42,12 @@ const Index = () => {
   const [routineWizardOpen, setRoutineWizardOpen] = useState(false);
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
 
+  // Search and filter states
+  const [deviceSearch, setDeviceSearch] = useState('');
+  const [deviceFilter, setDeviceFilter] = useState<DeviceFilter>('all');
+  const [routineSearch, setRoutineSearch] = useState('');
+  const [routineFilter, setRoutineFilter] = useState<RoutineFilter>('all');
+
   const handleEditDevice = (device: Device) => {
     setSelectedDevice(device);
     setDeviceDialogOpen(true);
@@ -57,8 +68,54 @@ const Index = () => {
     setRoutineWizardOpen(true);
   };
 
+  // Filtered and sorted devices
+  const filteredDevices = useMemo(() => {
+    return devices
+      .filter((device) => {
+        const matchesSearch = device.name.toLowerCase().includes(deviceSearch.toLowerCase());
+        const matchesFilter = 
+          deviceFilter === 'all' ||
+          (deviceFilter === 'online' && device.status === 'online') ||
+          (deviceFilter === 'offline' && device.status === 'offline');
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        // Online first, then by name
+        if (a.status === 'online' && b.status !== 'online') return -1;
+        if (a.status !== 'online' && b.status === 'online') return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [devices, deviceSearch, deviceFilter]);
+
+  // Filtered and sorted routines
+  const filteredRoutines = useMemo(() => {
+    return routines
+      .filter((routine) => {
+        const matchesSearch = routine.name.toLowerCase().includes(routineSearch.toLowerCase());
+        const matchesFilter =
+          routineFilter === 'all' ||
+          (routineFilter === 'active' && routine.isActive) ||
+          (routineFilter === 'inactive' && !routine.isActive);
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        // Active first, then by name
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [routines, routineSearch, routineFilter]);
+
   const onlineCount = devices.filter((d) => d.status === 'online').length;
   const activeRoutinesCount = routines.filter((r) => r.isActive).length;
+
+  const filterButtonClass = (active: boolean) =>
+    cn(
+      "text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3 rounded-lg transition-all",
+      active
+        ? "bg-primary text-primary-foreground"
+        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+    );
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,8 +173,38 @@ const Index = () => {
               </Button>
             </div>
 
+            {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <SearchInput
+                value={deviceSearch}
+                onChange={setDeviceSearch}
+                placeholder="Buscar dispositivo..."
+                className="flex-1"
+              />
+              <div className="flex gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setDeviceFilter('all')}
+                  className={filterButtonClass(deviceFilter === 'all')}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setDeviceFilter('online')}
+                  className={filterButtonClass(deviceFilter === 'online')}
+                >
+                  Online
+                </button>
+                <button
+                  onClick={() => setDeviceFilter('offline')}
+                  className={filterButtonClass(deviceFilter === 'offline')}
+                >
+                  Offline
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {devices.map((device, index) => (
+              {filteredDevices.map((device, index) => (
                 <motion.div
                   key={device.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -132,6 +219,24 @@ const Index = () => {
                 </motion.div>
               ))}
             </div>
+
+            {filteredDevices.length === 0 && devices.length > 0 && (
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Nenhum dispositivo encontrado com os filtros atuais
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeviceSearch('');
+                    setDeviceFilter('all');
+                  }}
+                  className="text-xs sm:text-sm"
+                >
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
 
             {devices.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
@@ -165,8 +270,38 @@ const Index = () => {
               </Button>
             </div>
 
+            {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <SearchInput
+                value={routineSearch}
+                onChange={setRoutineSearch}
+                placeholder="Buscar rotina..."
+                className="flex-1"
+              />
+              <div className="flex gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setRoutineFilter('all')}
+                  className={filterButtonClass(routineFilter === 'all')}
+                >
+                  Todas
+                </button>
+                <button
+                  onClick={() => setRoutineFilter('active')}
+                  className={filterButtonClass(routineFilter === 'active')}
+                >
+                  Ativas
+                </button>
+                <button
+                  onClick={() => setRoutineFilter('inactive')}
+                  className={filterButtonClass(routineFilter === 'inactive')}
+                >
+                  Inativas
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-2 sm:gap-4 sm:grid-cols-2">
-              {routines.map((routine, index) => (
+              {filteredRoutines.map((routine, index) => (
                 <motion.div
                   key={routine.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -182,6 +317,24 @@ const Index = () => {
                 </motion.div>
               ))}
             </div>
+
+            {filteredRoutines.length === 0 && routines.length > 0 && (
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Nenhuma rotina encontrada com os filtros atuais
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRoutineSearch('');
+                    setRoutineFilter('all');
+                  }}
+                  className="text-xs sm:text-sm"
+                >
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
 
             {routines.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">

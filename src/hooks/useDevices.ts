@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Device } from '@/types/device';
 import { mockDevices } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+
+const STORAGE_KEY = 'smart-office-devices';
 
 export function useDevices() {
-  const [devices, setDevices] = useState<Device[]>(mockDevices);
+  const [devices, setDevices] = useLocalStorage<Device[]>(STORAGE_KEY, mockDevices);
 
   const toggleDevice = useCallback((id: string) => {
     setDevices((prev) =>
@@ -28,7 +31,7 @@ export function useDevices() {
         return device;
       })
     );
-  }, []);
+  }, [setDevices]);
 
   const toggleAllDevices = useCallback((turnOn: boolean) => {
     const onlineDevices = devices.filter(d => d.status === 'online');
@@ -49,7 +52,7 @@ export function useDevices() {
         ? `${onlineDevices.length} dispositivos ${turnOn ? 'ligados' : 'desligados'}. ${offlineCount} offline.`
         : `${onlineDevices.length} dispositivos ${turnOn ? 'ligados' : 'desligados'}.`,
     });
-  }, [devices]);
+  }, [devices, setDevices]);
 
   const addDevice = useCallback((device: Omit<Device, 'id'>) => {
     const newDevice: Device = {
@@ -61,7 +64,7 @@ export function useDevices() {
       title: 'Dispositivo adicionado',
       description: `${device.name} foi cadastrado com sucesso.`,
     });
-  }, []);
+  }, [setDevices]);
 
   const updateDevice = useCallback((id: string, updates: Partial<Device>) => {
     setDevices((prev) =>
@@ -73,7 +76,7 @@ export function useDevices() {
       title: 'Dispositivo atualizado',
       description: 'As alterações foram salvas.',
     });
-  }, []);
+  }, [setDevices]);
 
   const deleteDevice = useCallback((id: string) => {
     const device = devices.find(d => d.id === id);
@@ -82,7 +85,7 @@ export function useDevices() {
       title: 'Dispositivo removido',
       description: device ? `${device.name} foi removido.` : 'Dispositivo removido.',
     });
-  }, [devices]);
+  }, [devices, setDevices]);
 
   return {
     devices,
