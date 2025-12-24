@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Routine } from '@/types/device';
 import { mockRoutines } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+
+const STORAGE_KEY = 'smart-office-routines';
 
 export function useRoutines() {
-  const [routines, setRoutines] = useState<Routine[]>(mockRoutines);
+  const [routines, setRoutines] = useLocalStorage<Routine[]>(STORAGE_KEY, mockRoutines);
 
   const toggleRoutine = useCallback((id: string) => {
     setRoutines((prev) =>
@@ -20,7 +23,7 @@ export function useRoutines() {
         return routine;
       })
     );
-  }, []);
+  }, [setRoutines]);
 
   const addRoutine = useCallback((routine: Omit<Routine, 'id'>) => {
     const newRoutine: Routine = {
@@ -32,7 +35,7 @@ export function useRoutines() {
       title: 'Rotina criada',
       description: `"${routine.name}" foi criada com sucesso.`,
     });
-  }, []);
+  }, [setRoutines]);
 
   const updateRoutine = useCallback((id: string, updates: Partial<Routine>) => {
     setRoutines((prev) =>
@@ -44,7 +47,7 @@ export function useRoutines() {
       title: 'Rotina atualizada',
       description: 'As alterações foram salvas.',
     });
-  }, []);
+  }, [setRoutines]);
 
   const deleteRoutine = useCallback((id: string) => {
     const routine = routines.find(r => r.id === id);
@@ -53,7 +56,7 @@ export function useRoutines() {
       title: 'Rotina removida',
       description: routine ? `"${routine.name}" foi removida.` : 'Rotina removida.',
     });
-  }, [routines]);
+  }, [routines, setRoutines]);
 
   return {
     routines,
