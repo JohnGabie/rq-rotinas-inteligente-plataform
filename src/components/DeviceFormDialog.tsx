@@ -112,7 +112,7 @@ export function DeviceFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-x-hidden overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
               {isEditing ? 'Editar Dispositivo' : 'Adicionar Dispositivo'}
