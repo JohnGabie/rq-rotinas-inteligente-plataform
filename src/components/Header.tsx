@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion';
-import { Zap } from 'lucide-react';
+import { Zap, Moon, Sun } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
 
 export function Header() {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
@@ -19,7 +23,28 @@ export function Header() {
           </div>
         </motion.div>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-8 w-8 sm:h-9 sm:w-9"
+            aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+          >
+            <motion.div
+              key={theme}
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+              ) : (
+                <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+            </motion.div>
+          </Button>
+          
           <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-primary/20 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
             <span className="hidden xs:inline">Sistema</span> Ativo
@@ -29,3 +54,4 @@ export function Header() {
     </header>
   );
 }
+
