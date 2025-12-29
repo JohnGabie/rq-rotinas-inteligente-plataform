@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plug, Server, Trash2 } from 'lucide-react';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,23 @@ import { Label } from '@/components/ui/label';
 import { Device, DeviceType } from '@/types/device';
 import { cn } from '@/lib/utils';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import { toast } from '@/hooks/use-toast';
+
+// Validation schemas
+const baseDeviceSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(50, 'Nome deve ter no máximo 50 caracteres'),
+});
+
+const tuyaDeviceSchema = baseDeviceSchema.extend({
+  deviceId: z.string().min(1, 'Device ID é obrigatório').max(64, 'Device ID deve ter no máximo 64 caracteres'),
+  localKey: z.string().min(1, 'Local Key é obrigatória').max(64, 'Local Key deve ter no máximo 64 caracteres'),
+});
+
+const snmpDeviceSchema = baseDeviceSchema.extend({
+  ip: z.string().ip({ message: 'Endereço IP inválido' }),
+  communityString: z.string().min(1, 'Community é obrigatório').max(50, 'Community deve ter no máximo 50 caracteres'),
+  port: z.number().int().min(1, 'Porta deve ser entre 1 e 65535').max(65535, 'Porta deve ser entre 1 e 65535'),
+});
 
 interface DeviceFormDialogProps {
   open: boolean;
@@ -64,8 +82,11 @@ export function DeviceFormDialog({
     }
   }, [device, open]);
 
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
 
     const baseDevice = {
       name,
@@ -74,32 +95,51 @@ export function DeviceFormDialog({
       status: device?.status ?? ('online' as const),
     };
 
-    if (type === 'tuya') {
-      const newDevice: Omit<Device, 'id'> = {
-        ...baseDevice,
-        deviceId,
-        localKey,
-      };
-      if (isEditing && onUpdate) {
-        onUpdate(device.id, newDevice);
+    try {
+      if (type === 'tuya') {
+        tuyaDeviceSchema.parse({ name, deviceId, localKey });
+        const newDevice: Omit<Device, 'id'> = {
+          ...baseDevice,
+          deviceId,
+          localKey,
+        };
+        if (isEditing && onUpdate) {
+          onUpdate(device.id, newDevice);
+        } else {
+          onSave(newDevice);
+        }
       } else {
-        onSave(newDevice);
+        const portNumber = parseInt(port, 10);
+        snmpDeviceSchema.parse({ name, ip, communityString, port: portNumber });
+        const newDevice: Omit<Device, 'id'> = {
+          ...baseDevice,
+          ip,
+          communityString,
+          port: portNumber,
+        };
+        if (isEditing && onUpdate) {
+          onUpdate(device.id, newDevice);
+        } else {
+          onSave(newDevice);
+        }
       }
-    } else {
-      const newDevice: Omit<Device, 'id'> = {
-        ...baseDevice,
-        ip,
-        communityString,
-        port: parseInt(port, 10),
-      };
-      if (isEditing && onUpdate) {
-        onUpdate(device.id, newDevice);
-      } else {
-        onSave(newDevice);
+      onOpenChange(false);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0].toString()] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+        toast({
+          title: 'Dados inválidos',
+          description: 'Verifique os campos destacados.',
+          variant: 'destructive',
+        });
       }
     }
-
-    onOpenChange(false);
   };
 
   const handleDeleteConfirm = () => {
@@ -133,9 +173,13 @@ export function DeviceFormDialog({
                 placeholder="Ex: Tomada do Servidor"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required
-                className="text-sm sm:text-base"
+                maxLength={50}
+                autoComplete="off"
+                className={cn("text-sm sm:text-base", validationErrors.name && "border-destructive")}
               />
+              {validationErrors.name && (
+                <p className="text-xs text-destructive">{validationErrors.name}</p>
+              )}
             </div>
 
             {/* Device Type Selection */}
@@ -190,9 +234,13 @@ export function DeviceFormDialog({
                       placeholder="ID do dispositivo Tuya"
                       value={deviceId}
                       onChange={(e) => setDeviceId(e.target.value)}
-                      required
-                      className="text-sm sm:text-base"
+                      maxLength={64}
+                      autoComplete="off"
+                      className={cn("text-sm sm:text-base", validationErrors.deviceId && "border-destructive")}
                     />
+                    {validationErrors.deviceId && (
+                      <p className="text-xs text-destructive">{validationErrors.deviceId}</p>
+                    )}
                   </div>
                   <div className="space-y-1.5 sm:space-y-2">
                     <Label htmlFor="localKey" className="text-xs sm:text-sm">Local Key</Label>
@@ -201,10 +249,15 @@ export function DeviceFormDialog({
                       placeholder="Chave local do dispositivo"
                       value={localKey}
                       onChange={(e) => setLocalKey(e.target.value)}
-                      required
+                      maxLength={64}
                       type="password"
-                      className="text-sm sm:text-base"
+                      autoComplete="off"
+                      data-form-type="other"
+                      className={cn("text-sm sm:text-base", validationErrors.localKey && "border-destructive")}
                     />
+                    {validationErrors.localKey && (
+                      <p className="text-xs text-destructive">{validationErrors.localKey}</p>
+                    )}
                   </div>
                 </motion.div>
               ) : (
@@ -222,9 +275,12 @@ export function DeviceFormDialog({
                       placeholder="192.168.1.100"
                       value={ip}
                       onChange={(e) => setIp(e.target.value)}
-                      required
-                      className="text-sm sm:text-base"
+                      autoComplete="off"
+                      className={cn("text-sm sm:text-base", validationErrors.ip && "border-destructive")}
                     />
+                    {validationErrors.ip && (
+                      <p className="text-xs text-destructive">{validationErrors.ip}</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div className="space-y-1.5 sm:space-y-2">
@@ -234,9 +290,13 @@ export function DeviceFormDialog({
                         placeholder="public"
                         value={communityString}
                         onChange={(e) => setCommunityString(e.target.value)}
-                        required
-                        className="text-sm sm:text-base"
+                        maxLength={50}
+                        autoComplete="off"
+                        className={cn("text-sm sm:text-base", validationErrors.communityString && "border-destructive")}
                       />
+                      {validationErrors.communityString && (
+                        <p className="text-xs text-destructive">{validationErrors.communityString}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label htmlFor="port" className="text-xs sm:text-sm">Porta</Label>
@@ -246,9 +306,14 @@ export function DeviceFormDialog({
                         value={port}
                         onChange={(e) => setPort(e.target.value)}
                         type="number"
-                        required
-                        className="text-sm sm:text-base"
+                        min={1}
+                        max={65535}
+                        autoComplete="off"
+                        className={cn("text-sm sm:text-base", validationErrors.port && "border-destructive")}
                       />
+                      {validationErrors.port && (
+                        <p className="text-xs text-destructive">{validationErrors.port}</p>
+                      )}
                     </div>
                   </div>
                 </motion.div>

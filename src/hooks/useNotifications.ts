@@ -21,7 +21,6 @@ export function useNotifications() {
 
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) {
-      console.warn('Este navegador não suporta notificações');
       return false;
     }
 
@@ -44,8 +43,8 @@ export function useNotifications() {
         icon: icon || '/favicon.ico',
         badge: '/favicon.ico',
       });
-    } catch (error) {
-      console.error('Erro ao enviar notificação:', error);
+    } catch {
+      // Silent fail - notification may not be available
     }
   }, [enabled, permission]);
 
