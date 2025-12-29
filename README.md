@@ -1,73 +1,114 @@
-# Welcome to your Lovable project
+# 🔌 Rotina Inteligente
 
-## Project info
+> Sistema de gerenciamento e agendamento de dispositivos inteligentes (IoT) e equipamentos de infraestrutura via Docker.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 📖 Sobre o Projeto
 
-## How can I edit this code?
+Este projeto tem como objetivo centralizar o controle de dispositivos elétricos do escritório (Réguas de energia, Tomadas inteligentes e Ar-condicionado). O sistema roda em um ambiente **Docker**, garantindo que as rotinas de automação sejam executadas automaticamente assim que o servidor/PC é ligado.
 
-There are several ways of editing your application.
+O foco principal é a **Experiência do Usuário (UX)**: a interface deve permitir que qualquer membro da equipe (mesmo não-técnicos) consiga criar agendamentos e ligar/desligar equipamentos sem lidar com linhas de comando ou configurações complexas de rede.
 
-**Use Lovable**
+## 🛠 Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Backend (Python)
+Rodará no servidor principal e é responsável pela comunicação direta com o hardware.
+* **Linguagem:** Python 3.10+
+* **Framework Sugerido:** FastAPI ou Flask.
+* **Protocolos:** * **Tuya API:** Para tomadas inteligentes Wi-Fi.
+    * **SNMP:** Para réguas de energia gerenciáveis (PDU) e equipamentos legados.
+* **Banco de Dados:** SQLite (Armazenamento local de rotinas e devices).
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend (Foco do Desenvolvimento Atual)
+Interface visual para controle e configuração.
+* **Framework:** React, Vue.js ou tecnologia similar.
+* **Requisito:** Interface responsiva e amigável.
 
-**Use your preferred IDE**
+### Infraestrutura
+* **Docker & Docker Compose:** Orquestração dos containers.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🚀 Funcionalidades (Escopo)
 
-Follow these steps:
+1.  **Dashboard de Controle:**
+    * Visualização em *Cards* de todos os dispositivos.
+    * Feedback visual imediato (Verde = Ligado, Cinza = Desligado).
+    * Botão de ação rápida (Toggle On/Off).
+2.  **Gerenciamento de Dispositivos:**
+    * Cadastro de novos devices (IP, Protocolo, Keys).
+    * Edição e Remoção.
+3.  **Rotinas e Agendamento (Core):**
+    * Criação de regras: *SE [Gatilho] ENTÃO [Ação]*.
+    * Gatilhos: Horário (Cron) ou Inicialização do Sistema (Boot).
+    * Interface visual para seleção de dias da semana.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## ⚙️ Instalação e Execução
 
-# Step 3: Install the necessary dependencies.
-npm i
+Como o projeto é containerizado, a inicialização é padronizada.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Pré-requisitos
+* Docker e Docker Compose instalados.
+* Acesso à rede onde os dispositivos Tuya/SNMP estão conectados.
 
-**Edit a file directly in GitHub**
+### Rodando o projeto
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/smart-office-scheduler.git](https://github.com/seu-usuario/smart-office-scheduler.git)
+    cd smart-office-scheduler
+    ```
 
-**Use GitHub Codespaces**
+2.  **Configuração de Ambiente (.env):**
+    Crie um arquivo `.env` na raiz baseado no `.env.example`:
+    ```env
+    # Exemplo
+    TUYA_REGION=us
+    SNMP_COMMUNITY=public
+    BACKEND_PORT=8000
+    FRONTEND_PORT=3000
+    ```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+3.  **Subir os containers:**
+    ```bash
+    docker-compose up -d --build
+    ```
 
-## What technologies are used for this project?
+4.  **Acessar a aplicação:**
+    * Frontend: `http://localhost:3000`
+    * API Docs (Swagger): `http://localhost:8000/docs`
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📡 Estrutura da API (Para o Frontend)
 
-## How can I deploy this project?
+O Frontend deve consumir a API Python. Abaixo, um exemplo da estrutura esperada dos endpoints:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/api/devices` | Lista todos os dispositivos e seus status atuais. |
+| `POST` | `/api/devices` | Adiciona um novo dispositivo (Tuya ou SNMP). |
+| `POST` | `/api/control/{id}` | Envia comando `{ "state": "ON" }` para o dispositivo. |
+| `GET` | `/api/routines` | Lista as rotinas de agendamento ativas. |
+| `POST` | `/api/routines` | Cria uma nova rotina (Ex: Ligar ID 5 às 08:00). |
 
-## Can I connect a custom domain to my Lovable project?
+> **Nota para o Frontend:** Em caso de erro de conexão com o dispositivo (timeout no SNMP ou Tuya offline), a UI deve exibir uma mensagem amigável ("Dispositivo não responde") e não o erro bruto do backend.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📂 Estrutura de Pastas
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```text
+/
+├── backend/            # Código Python (API + Workers)
+│   ├── app/
+│   ├── protocols/      # Drivers Tuya e SNMP
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/           # Código da Interface
+│   ├── public/
+│   ├── src/
+│   └── Dockerfile
+├── docker-compose.yml  # Orquestração
+└── README.md
