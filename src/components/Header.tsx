@@ -28,8 +28,8 @@ export function Header() {
             <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-foreground">Rotinas Inteligentes</h1>
-            <p className="text-[10px] sm:text-xs text-muted-foreground hidden xs:block">Gerenciador de Automação</p>
+            <h1 className="text-base sm:text-lg font-bold text-foreground">Rotina Inteligente</h1>
+            <p className="text-[10px] sm:text-xs text-muted-foreground hidden xs:block">Automação Residencial</p>
           </div>
         </motion.div>
 
