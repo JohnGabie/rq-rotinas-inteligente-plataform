@@ -94,6 +94,30 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (email: string, password: string, recaptchaToken?: string): Promise<ApiResponse<{ user: User; tokens: AuthTokens }>> => {
+    // ============================================
+    // TODO: REMOVER MOCK DE ADMIN ANTES DE PRODUÇÃO
+    // Mock admin user para testes - DELETAR ESTE BLOCO
+    // ============================================
+    if (email === 'admin' && password === 'admin') {
+      const mockUser: User = {
+        id: 'mock-admin-001',
+        email: 'admin@rotinainteligente.local',
+        name: 'Administrador',
+      };
+      const mockTokens: AuthTokens = {
+        accessToken: 'mock-jwt-token-admin-' + Date.now(),
+        refreshToken: 'mock-refresh-token-admin-' + Date.now(),
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+      };
+      return {
+        success: true,
+        data: { user: mockUser, tokens: mockTokens },
+      };
+    }
+    // ============================================
+    // FIM DO MOCK - DELETAR ATÉ AQUI
+    // ============================================
+
     const response = await api.post('/api/auth/login', { email, password, recaptchaToken });
     return response.data;
   },
