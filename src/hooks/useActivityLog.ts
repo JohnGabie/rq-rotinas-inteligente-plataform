@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { ActivityLog, ActivityType } from '@/types/activity';
 
-const STORAGE_KEY = 'smart-office-activity-log';
+const STORAGE_KEY = 'rotina-inteligente-activity-log';
 const MAX_LOGS = 100;
 
 interface AddLogParams {

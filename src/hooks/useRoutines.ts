@@ -1,15 +1,20 @@
 import { useCallback } from 'react';
 import { Routine } from '@/types/device';
-import { mockRoutines } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
 
-const STORAGE_KEY = 'smart-office-routines';
+const STORAGE_KEY = 'rotina-inteligente-routines';
+
+// Flag to use mock or real API - routines stored locally for now
+const USE_MOCK_API = true;
+
+// Initial empty routines - will be loaded from localStorage or empty
+const initialRoutines: Routine[] = [];
 
 export function useRoutines() {
-  const [routines, setRoutines] = useLocalStorage<Routine[]>(STORAGE_KEY, mockRoutines);
+  const [routines, setRoutines] = useLocalStorage<Routine[]>(STORAGE_KEY, initialRoutines);
   const { addLog } = useActivityLog();
   const { sendNotification } = useNotifications();
 
