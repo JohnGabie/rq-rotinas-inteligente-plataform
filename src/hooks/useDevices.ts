@@ -1,15 +1,21 @@
 import { useCallback } from 'react';
 import { Device } from '@/types/device';
-import { mockDevices } from '@/data/mockData';
 import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
+import { mockDevices, apiDeviceToDevice } from '@/lib/api/mockResponses';
 
-const STORAGE_KEY = 'smart-office-devices';
+const STORAGE_KEY = 'rotina-inteligente-devices';
+
+// Flag to use mock or real API
+const USE_MOCK_API = true;
+
+// Convert mock API devices to frontend format for initial state
+const initialDevices = mockDevices.map(apiDeviceToDevice);
 
 export function useDevices() {
-  const [devices, setDevices] = useLocalStorage<Device[]>(STORAGE_KEY, mockDevices);
+  const [devices, setDevices] = useLocalStorage<Device[]>(STORAGE_KEY, USE_MOCK_API ? initialDevices : []);
   const { addLog } = useActivityLog();
   const { sendNotification } = useNotifications();
 

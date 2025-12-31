@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { Zap, Moon, Sun, Bell, BellOff } from 'lucide-react';
+import { Zap, Moon, Sun, Bell, BellOff, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useActivityLog } from '@/hooks/useActivityLog';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { ActivityLogPanel } from '@/components/ActivityLogPanel';
 import {
   Tooltip,
@@ -16,6 +17,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
   const { enabled: notificationsEnabled, toggleNotifications, permission } = useNotifications();
   const { logs, clearLogs } = useActivityLog();
+  const { logout, user } = useAuthContext();
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
@@ -28,7 +30,7 @@ export function Header() {
             <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-foreground">Smart Office</h1>
+            <h1 className="text-base sm:text-lg font-bold text-foreground">Rotina Inteligente</h1>
             <p className="text-[10px] sm:text-xs text-muted-foreground hidden xs:block">Gerenciador de Automação</p>
           </div>
         </motion.div>
@@ -95,6 +97,25 @@ export function Header() {
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
             <span className="hidden xs:inline">Sistema</span> Ativo
           </span>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive"
+                  aria-label="Sair"
+                >
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Sair ({user?.email})</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </nav>
       </div>
     </header>
