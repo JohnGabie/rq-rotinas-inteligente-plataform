@@ -8,6 +8,31 @@ class ApiError extends Error {
   }
 }
 
+// Map detailed errors to user-friendly messages
+const sanitizeErrorMessage = (status: number, _rawMessage?: string): string => {
+  switch (status) {
+    case 400:
+      return 'Dados inválidos. Verifique as informações e tente novamente.';
+    case 401:
+      return 'Sessão expirada. Faça login novamente.';
+    case 403:
+      return 'Você não tem permissão para realizar esta ação.';
+    case 404:
+      return 'Recurso não encontrado.';
+    case 422:
+      return 'Dados inválidos. Verifique as informações e tente novamente.';
+    case 429:
+      return 'Muitas tentativas. Aguarde um momento e tente novamente.';
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return 'Erro no servidor. Tente novamente mais tarde.';
+    default:
+      return 'Ocorreu um erro. Tente novamente.';
+  }
+};
+
 const getAuthToken = (): string | null => {
   const session = localStorage.getItem('rotina-inteligente-session');
   if (session) {
@@ -45,7 +70,7 @@ export const apiClient = {
       });
       
       if (!response.ok) {
-        throw new ApiError(response.status, `HTTP error! status: ${response.status}`);
+        throw new ApiError(response.status, sanitizeErrorMessage(response.status));
       }
       
       return await response.json();
@@ -53,7 +78,7 @@ export const apiClient = {
       if (error instanceof ApiError) {
         return { success: false, error: error.message };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
   },
   
@@ -66,8 +91,7 @@ export const apiClient = {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new ApiError(response.status, errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
+        throw new ApiError(response.status, sanitizeErrorMessage(response.status));
       }
       
       return await response.json();
@@ -75,7 +99,7 @@ export const apiClient = {
       if (error instanceof ApiError) {
         return { success: false, error: error.message };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
   },
   
@@ -88,7 +112,7 @@ export const apiClient = {
       });
       
       if (!response.ok) {
-        throw new ApiError(response.status, `HTTP error! status: ${response.status}`);
+        throw new ApiError(response.status, sanitizeErrorMessage(response.status));
       }
       
       return await response.json();
@@ -96,7 +120,7 @@ export const apiClient = {
       if (error instanceof ApiError) {
         return { success: false, error: error.message };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
   },
   
@@ -108,7 +132,7 @@ export const apiClient = {
       });
       
       if (!response.ok) {
-        throw new ApiError(response.status, `HTTP error! status: ${response.status}`);
+        throw new ApiError(response.status, sanitizeErrorMessage(response.status));
       }
       
       return await response.json();
@@ -116,7 +140,7 @@ export const apiClient = {
       if (error instanceof ApiError) {
         return { success: false, error: error.message };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Erro de conexão. Verifique sua internet.' };
     }
   },
 };
