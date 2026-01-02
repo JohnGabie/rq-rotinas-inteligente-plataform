@@ -13,10 +13,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Device, DeviceType } from '@/types/device';
+import { Device, DeviceType, DeviceIcon } from '@/types/device';
 import { cn } from '@/lib/utils';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { toast } from '@/hooks/use-toast';
+import { DEVICE_ICONS } from '@/lib/deviceIcons';
 
 // Validation schemas
 const baseDeviceSchema = z.object({
@@ -55,6 +56,7 @@ export function DeviceFormDialog({
 
   const [name, setName] = useState('');
   const [type, setType] = useState<DeviceType>('tuya');
+  const [icon, setIcon] = useState<DeviceIcon>('plug');
   const [deviceId, setDeviceId] = useState('');
   const [localKey, setLocalKey] = useState('');
   const [ip, setIp] = useState('');
@@ -66,6 +68,7 @@ export function DeviceFormDialog({
     if (device) {
       setName(device.name);
       setType(device.type);
+      setIcon(device.icon || 'plug');
       setDeviceId(device.deviceId || '');
       setLocalKey(device.localKey || '');
       setIp(device.ip || '');
@@ -74,6 +77,7 @@ export function DeviceFormDialog({
     } else {
       setName('');
       setType('tuya');
+      setIcon('plug');
       setDeviceId('');
       setLocalKey('');
       setIp('');
@@ -91,6 +95,7 @@ export function DeviceFormDialog({
     const baseDevice = {
       name,
       type,
+      icon,
       isOn: device?.isOn ?? false,
       status: device?.status ?? ('online' as const),
     };
@@ -180,6 +185,35 @@ export function DeviceFormDialog({
               {validationErrors.name && (
                 <p className="text-xs text-destructive">{validationErrors.name}</p>
               )}
+            </div>
+
+            {/* Device Icon Selection */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-xs sm:text-sm">Ícone do Dispositivo</Label>
+              <div className="grid grid-cols-5 sm:grid-cols-7 gap-1.5 sm:gap-2">
+                {DEVICE_ICONS.map((iconOption) => {
+                  const IconComponent = iconOption.Icon;
+                  return (
+                    <button
+                      key={iconOption.id}
+                      type="button"
+                      onClick={() => setIcon(iconOption.id as DeviceIcon)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 p-2 sm:p-2.5 transition-all duration-200",
+                        icon === iconOption.id
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                      )}
+                      title={iconOption.label}
+                    >
+                      <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {DEVICE_ICONS.find(i => i.id === icon)?.label || 'Tomada'}
+              </p>
             </div>
 
             {/* Device Type Selection */}

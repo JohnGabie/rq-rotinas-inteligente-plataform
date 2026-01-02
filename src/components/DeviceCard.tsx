@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Power, Wifi, WifiOff, Plug, Server } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
 import { Device } from '@/types/device';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { getDeviceIcon } from '@/lib/deviceIcons';
 
 interface DeviceCardProps {
   device: Device;
@@ -14,7 +15,7 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
   const isOnline = device.status === 'online';
   const isOn = device.isOn && isOnline;
 
-  const DeviceIcon = device.type === 'tuya' ? Plug : Server;
+  const DeviceIcon = getDeviceIcon(device.icon);
 
   return (
     <motion.div
