@@ -35,6 +35,7 @@ export interface ApiDevice {
   id: string;
   name: string;
   type: 'tuya' | 'snmp';
+  icon?: string;
   is_on: boolean;
   status: 'online' | 'offline';
   // Tuya specific

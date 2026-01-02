@@ -2,10 +2,26 @@ export type DeviceType = 'tuya' | 'snmp';
 
 export type DeviceStatus = 'online' | 'offline';
 
+export type DeviceIcon = 
+  | 'plug' 
+  | 'monitor' 
+  | 'tv' 
+  | 'air-vent' 
+  | 'printer' 
+  | 'server' 
+  | 'router' 
+  | 'lightbulb' 
+  | 'camera' 
+  | 'coffee' 
+  | 'fan' 
+  | 'speaker' 
+  | 'refrigerator';
+
 export interface Device {
   id: string;
   name: string;
   type: DeviceType;
+  icon?: DeviceIcon;
   isOn: boolean;
   status: DeviceStatus;
   // Tuya specific

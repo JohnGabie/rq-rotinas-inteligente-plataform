@@ -1,10 +1,11 @@
-import { Device, Routine } from '@/types/device';
+import { Device, Routine, DeviceIcon } from '@/types/device';
 
 export const mockDevices: Device[] = [
   {
     id: '1',
     name: 'Tomada do Servidor',
     type: 'tuya',
+    icon: 'server' as DeviceIcon,
     isOn: true,
     status: 'online',
     deviceId: 'bf1234567890abcd',
@@ -14,6 +15,7 @@ export const mockDevices: Device[] = [
     id: '2',
     name: 'Régua do Escritório',
     type: 'snmp',
+    icon: 'router' as DeviceIcon,
     isOn: false,
     status: 'online',
     ip: '192.168.1.100',
@@ -24,6 +26,7 @@ export const mockDevices: Device[] = [
     id: '3',
     name: 'Tomada do Café',
     type: 'tuya',
+    icon: 'coffee' as DeviceIcon,
     isOn: true,
     status: 'online',
     deviceId: 'cf9876543210dcba',
@@ -33,6 +36,7 @@ export const mockDevices: Device[] = [
     id: '4',
     name: 'Impressora 3D',
     type: 'snmp',
+    icon: 'printer' as DeviceIcon,
     isOn: false,
     status: 'offline',
     ip: '192.168.1.105',
