@@ -34,6 +34,7 @@ const Index = () => {
     addRoutine,
     updateRoutine,
     deleteRoutine,
+    executeRoutine,
   } = useRoutines();
 
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
@@ -311,8 +312,10 @@ const Index = () => {
                   <RoutineCard
                     routine={routine}
                     devices={devices}
+                    routines={routines}
                     onToggle={toggleRoutine}
                     onEdit={handleEditRoutine}
+                    onExecute={executeRoutine}
                   />
                 </motion.div>
               ))}
@@ -372,6 +375,7 @@ const Index = () => {
         onOpenChange={setRoutineWizardOpen}
         routine={selectedRoutine}
         devices={devices}
+        routines={routines}
         onSave={addRoutine}
         onUpdate={updateRoutine}
         onDelete={deleteRoutine}

@@ -54,8 +54,8 @@ export const mockRoutines: Routine[] = [
     triggerTime: '08:00',
     weekDays: ['seg', 'ter', 'qua', 'qui', 'sex'],
     actions: [
-      { deviceId: '1', turnOn: true },
-      { deviceId: '3', turnOn: true },
+      { deviceId: '1', turnOn: true, order: 1, delay: 0 },
+      { deviceId: '3', turnOn: true, order: 2, delay: 0 },
     ],
   },
   {
@@ -66,19 +66,19 @@ export const mockRoutines: Routine[] = [
     triggerTime: '18:00',
     weekDays: ['seg', 'ter', 'qua', 'qui', 'sex'],
     actions: [
-      { deviceId: '1', turnOn: false },
-      { deviceId: '2', turnOn: false },
-      { deviceId: '3', turnOn: false },
+      { deviceId: '1', turnOn: false, order: 1, delay: 0 },
+      { deviceId: '2', turnOn: false, order: 2, delay: 5 },
+      { deviceId: '3', turnOn: false, order: 3, delay: 3 },
     ],
   },
   {
     id: '3',
-    name: 'Ao Ligar o Sistema',
-    isActive: false,
-    triggerType: 'startup',
+    name: 'Ligar Manualmente',
+    isActive: true,
+    triggerType: 'manual',
     weekDays: [],
     actions: [
-      { deviceId: '1', turnOn: true },
+      { deviceId: '1', turnOn: true, order: 1, delay: 0 },
     ],
   },
 ];
