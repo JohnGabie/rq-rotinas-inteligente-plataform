@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Zap, Power, PowerOff, X, ChevronLeft, ChevronRight, Check, Trash2 } from 'lucide-react';
+import { Clock, Zap, Power, PowerOff, X, ChevronLeft, ChevronRight, Check, Trash2, Hand, GitBranch, ToggleRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,15 +11,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Device, Routine, TriggerType, WeekDay, RoutineAction } from '@/types/device';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Device, Routine, TriggerType, WeekDay, RoutineAction, TriggerDeviceState } from '@/types/device';
 import { cn } from '@/lib/utils';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import { RoutineActionList } from '@/components/RoutineActionList';
+import { getDeviceIcon } from '@/lib/deviceIcons';
 
 interface RoutineWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   routine?: Routine | null;
   devices: Device[];
+  routines?: Routine[];
   onSave: (routine: Omit<Routine, 'id'>) => void;
   onUpdate?: (id: string, updates: Partial<Routine>) => void;
   onDelete?: (id: string) => void;
@@ -35,11 +39,19 @@ const weekDayOptions: { value: WeekDay; label: string }[] = [
   { value: 'dom', label: 'Domingo' },
 ];
 
+const triggerOptions: { value: TriggerType; icon: typeof Clock; title: string; description: string }[] = [
+  { value: 'time', icon: Clock, title: 'Em um Horário', description: 'Executar em horário específico' },
+  { value: 'manual', icon: Hand, title: 'Manualmente', description: 'Executar quando eu quiser' },
+  { value: 'routine_complete', icon: GitBranch, title: 'Após uma Rotina', description: 'Quando outra rotina finalizar' },
+  { value: 'device_state', icon: ToggleRight, title: 'Estado de Dispositivo', description: 'Quando um dispositivo mudar' },
+];
+
 export function RoutineWizard({
   open,
   onOpenChange,
   routine,
   devices,
+  routines = [],
   onSave,
   onUpdate,
   onDelete,
@@ -52,6 +64,10 @@ export function RoutineWizard({
   const [triggerType, setTriggerType] = useState<TriggerType>('time');
   const [triggerTime, setTriggerTime] = useState('08:00');
   const [weekDays, setWeekDays] = useState<WeekDay[]>(['seg', 'ter', 'qua', 'qui', 'sex']);
+  const [triggerRoutineId, setTriggerRoutineId] = useState<string>('');
+  const [triggerDeviceId, setTriggerDeviceId] = useState<string>('');
+  const [triggerDeviceState, setTriggerDeviceState] = useState<TriggerDeviceState>('on');
+  const [triggerCooldownMinutes, setTriggerCooldownMinutes] = useState<number>(5);
   const [actions, setActions] = useState<RoutineAction[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -61,12 +77,20 @@ export function RoutineWizard({
       setTriggerType(routine.triggerType);
       setTriggerTime(routine.triggerTime || '08:00');
       setWeekDays(routine.weekDays);
+      setTriggerRoutineId(routine.triggerRoutineId || '');
+      setTriggerDeviceId(routine.triggerDeviceId || '');
+      setTriggerDeviceState(routine.triggerDeviceState || 'on');
+      setTriggerCooldownMinutes(routine.triggerCooldownMinutes ?? 5);
       setActions(routine.actions);
     } else {
       setName('');
       setTriggerType('time');
       setTriggerTime('08:00');
       setWeekDays(['seg', 'ter', 'qua', 'qui', 'sex']);
+      setTriggerRoutineId('');
+      setTriggerDeviceId('');
+      setTriggerDeviceState('on');
+      setTriggerCooldownMinutes(5);
       setActions([]);
     }
     setStep(1);
@@ -85,21 +109,29 @@ export function RoutineWizard({
         prev.map((a) => (a.deviceId === deviceId ? { ...a, turnOn } : a))
       );
     } else {
-      setActions((prev) => [...prev, { deviceId, turnOn }]);
+      const newOrder = actions.length + 1;
+      setActions((prev) => [...prev, { deviceId, turnOn, order: newOrder, delay: 0 }]);
     }
   };
 
   const removeAction = (deviceId: string) => {
-    setActions((prev) => prev.filter((a) => a.deviceId !== deviceId));
+    setActions((prev) => {
+      const filtered = prev.filter((a) => a.deviceId !== deviceId);
+      return filtered.map((a, index) => ({ ...a, order: index + 1 }));
+    });
   };
 
   const handleSubmit = () => {
     const newRoutine: Omit<Routine, 'id'> = {
       name,
-      isActive: routine?.isActive ?? true,
+      isActive: routine?.isActive ?? (triggerType !== 'manual'),
       triggerType,
       triggerTime: triggerType === 'time' ? triggerTime : undefined,
       weekDays: triggerType === 'time' ? weekDays : [],
+      triggerRoutineId: triggerType === 'routine_complete' ? triggerRoutineId : undefined,
+      triggerDeviceId: triggerType === 'device_state' ? triggerDeviceId : undefined,
+      triggerDeviceState: triggerType === 'device_state' ? triggerDeviceState : undefined,
+      triggerCooldownMinutes: triggerType === 'device_state' ? triggerCooldownMinutes : undefined,
       actions,
     };
 
@@ -125,13 +157,19 @@ export function RoutineWizard({
       case 2:
         return true;
       case 3:
-        return triggerType === 'startup' || (triggerTime && weekDays.length > 0);
+        if (triggerType === 'time') return triggerTime && weekDays.length > 0;
+        if (triggerType === 'manual' || triggerType === 'startup') return true;
+        if (triggerType === 'routine_complete') return !!triggerRoutineId;
+        if (triggerType === 'device_state') return !!triggerDeviceId;
+        return true;
       case 4:
         return actions.length > 0;
       default:
         return true;
     }
   };
+
+  const availableRoutines = routines.filter((r) => r.id !== routine?.id);
 
   return (
     <>
@@ -195,48 +233,36 @@ export function RoutineWizard({
                 className="space-y-4 py-3 sm:py-4"
               >
                 <Label className="text-sm sm:text-base">Quando esta rotina deve executar?</Label>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setTriggerType('time')}
-                    className={cn(
-                      "flex flex-col items-center gap-2 sm:gap-3 rounded-xl border-2 p-4 sm:p-6 transition-all",
-                      triggerType === 'time'
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <Clock className={cn("h-8 w-8 sm:h-10 sm:w-10", triggerType === 'time' ? "text-primary" : "text-muted-foreground")} />
-                    <div className="text-center">
-                      <p className="font-semibold text-sm sm:text-base">Em um Horário</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Horário específico
-                      </p>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTriggerType('startup')}
-                    className={cn(
-                      "flex flex-col items-center gap-2 sm:gap-3 rounded-xl border-2 p-4 sm:p-6 transition-all",
-                      triggerType === 'startup'
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <Zap className={cn("h-8 w-8 sm:h-10 sm:w-10", triggerType === 'startup' ? "text-primary" : "text-muted-foreground")} />
-                    <div className="text-center">
-                      <p className="font-semibold text-sm sm:text-base">Ao Iniciar</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Sistema ligar
-                      </p>
-                    </div>
-                  </button>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  {triggerOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setTriggerType(option.value)}
+                        className={cn(
+                          "flex flex-col items-center gap-2 sm:gap-3 rounded-xl border-2 p-3 sm:p-4 transition-all",
+                          triggerType === option.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <Icon className={cn("h-6 w-6 sm:h-8 sm:w-8", triggerType === option.value ? "text-primary" : "text-muted-foreground")} />
+                        <div className="text-center">
+                          <p className="font-semibold text-xs sm:text-sm">{option.title}</p>
+                          <p className="text-[9px] sm:text-xs text-muted-foreground">
+                            {option.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
 
-            {/* Step 3: Time/Days Config */}
+            {/* Step 3: Trigger Config */}
             {step === 3 && (
               <motion.div
                 key="step3"
@@ -245,7 +271,8 @@ export function RoutineWizard({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4 sm:space-y-6 py-3 sm:py-4"
               >
-                {triggerType === 'time' ? (
+                {/* Time trigger */}
+                {triggerType === 'time' && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="time" className="text-sm sm:text-base">
@@ -280,17 +307,143 @@ export function RoutineWizard({
                       </div>
                     </div>
                   </>
-                ) : (
+                )}
+
+                {/* Manual trigger */}
+                {triggerType === 'manual' && (
                   <div className="flex flex-col items-center gap-3 sm:gap-4 py-6 sm:py-8 text-center">
                     <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-primary/20">
-                      <Zap className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                      <Hand className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
                     </div>
                     <p className="text-base sm:text-lg font-medium">
-                      Executará quando o sistema iniciar
+                      Executar manualmente
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Ideal para preparar o ambiente
+                    <p className="text-xs sm:text-sm text-muted-foreground max-w-xs">
+                      Use o botão "Executar" no card da rotina quando quiser
                     </p>
+                  </div>
+                )}
+
+                {/* Routine complete trigger */}
+                {triggerType === 'routine_complete' && (
+                  <div className="space-y-3">
+                    <Label className="text-sm sm:text-base">
+                      Executar após qual rotina?
+                    </Label>
+                    <Select value={triggerRoutineId} onValueChange={setTriggerRoutineId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione uma rotina" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRoutines.length === 0 ? (
+                          <SelectItem value="none" disabled>
+                            Nenhuma rotina disponível
+                          </SelectItem>
+                        ) : (
+                          availableRoutines.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {triggerRoutineId && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <GitBranch className="h-3 w-3" />
+                        Será executada automaticamente após "{availableRoutines.find((r) => r.id === triggerRoutineId)?.name}"
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Device state trigger */}
+                {triggerType === 'device_state' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm sm:text-base">
+                        Qual dispositivo monitorar?
+                      </Label>
+                      <Select value={triggerDeviceId} onValueChange={setTriggerDeviceId}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione um dispositivo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {devices.map((d) => {
+                            const IconComponent = d.icon ? getDeviceIcon(d.icon) : null;
+                            return (
+                              <SelectItem key={d.id} value={d.id}>
+                                <span className="flex items-center gap-2">
+                                  {IconComponent && <IconComponent className="h-4 w-4" />}
+                                  {d.name}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm sm:text-base">
+                        Executar quando o dispositivo...
+                      </Label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setTriggerDeviceState('on')}
+                          className={cn(
+                            "flex-1 flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all",
+                            triggerDeviceState === 'on'
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <Power className={cn("h-5 w-5", triggerDeviceState === 'on' ? "text-primary" : "text-muted-foreground")} />
+                          <span className={cn("font-medium text-sm", triggerDeviceState === 'on' ? "text-primary" : "text-muted-foreground")}>
+                            Ligar
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTriggerDeviceState('off')}
+                          className={cn(
+                            "flex-1 flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all",
+                            triggerDeviceState === 'off'
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <PowerOff className={cn("h-5 w-5", triggerDeviceState === 'off' ? "text-primary" : "text-muted-foreground")} />
+                          <span className={cn("font-medium text-sm", triggerDeviceState === 'off' ? "text-muted-foreground" : "text-muted-foreground")}>
+                            Desligar
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm sm:text-base">
+                        Intervalo mínimo entre execuções
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={1440}
+                          value={triggerCooldownMinutes}
+                          onChange={(e) => setTriggerCooldownMinutes(parseInt(e.target.value) || 0)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">minutos</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {triggerCooldownMinutes === 0 
+                          ? "Sem limite - executa sempre que o estado mudar"
+                          : `Aguarda ${triggerCooldownMinutes} minutos antes de executar novamente`
+                        }
+                      </p>
+                    </div>
                   </div>
                 )}
               </motion.div>
@@ -306,61 +459,89 @@ export function RoutineWizard({
                 className="space-y-3 sm:space-y-4 py-3 sm:py-4"
               >
                 <Label className="text-sm sm:text-base">
-                  O que fazer quando a rotina executar?
+                  Adicionar dispositivos à rotina
                 </Label>
-                <div className="max-h-48 sm:max-h-64 space-y-2 overflow-y-auto pr-1 sm:pr-2">
-                  {devices.map((device) => {
-                    const action = actions.find((a) => a.deviceId === device.id);
-                    const isSelected = !!action;
+                
+                {/* Device selection grid */}
+                <div className="max-h-32 sm:max-h-40 overflow-y-auto pr-1 sm:pr-2 border rounded-lg p-2">
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {devices.map((device) => {
+                      const action = actions.find((a) => a.deviceId === device.id);
+                      const isSelected = !!action;
+                      const IconComponent = device.icon ? getDeviceIcon(device.icon) : null;
 
-                    return (
-                      <div
-                        key={device.id}
-                        className={cn(
-                          "flex flex-col xs:flex-row xs:items-center justify-between gap-2 rounded-lg border p-2 sm:p-3 transition-all",
-                          isSelected ? "border-primary bg-primary/5" : "border-border"
-                        )}
-                      >
-                        <span className="font-medium text-sm sm:text-base truncate">{device.name}</span>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          {isSelected && (
+                      return (
+                        <div
+                          key={device.id}
+                          className={cn(
+                            "flex items-center justify-between gap-2 rounded-lg border p-2 transition-all",
+                            isSelected ? "border-primary bg-primary/5" : "border-border"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {IconComponent && (
+                              <div className={cn(
+                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                                isSelected ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                              )}>
+                                <IconComponent className="h-4 w-4" />
+                              </div>
+                            )}
+                            <span className="font-medium text-sm truncate">{device.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isSelected && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeAction(device.id)}
+                                className="h-7 px-1.5 text-muted-foreground"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               type="button"
-                              variant="ghost"
+                              variant={action?.turnOn === true ? "default" : "outline"}
                               size="sm"
-                              onClick={() => removeAction(device.id)}
-                              className="h-7 sm:h-8 px-2 text-muted-foreground"
+                              onClick={() => addAction(device.id, true)}
+                              className="gap-1 text-xs h-7 px-2"
                             >
-                              <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              <Power className="h-3 w-3" />
                             </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant={action?.turnOn === true ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => addAction(device.id, true)}
-                            className="gap-1 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
-                          >
-                            <Power className="h-3 w-3 sm:h-4 sm:w-4" />
-                            Ligar
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={action?.turnOn === false ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => addAction(device.id, false)}
-                            className="gap-1 text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3"
-                          >
-                            <PowerOff className="h-3 w-3 sm:h-4 sm:w-4" />
-                            Desligar
-                          </Button>
+                            <Button
+                              type="button"
+                              variant={action?.turnOn === false ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => addAction(device.id, false)}
+                              className="gap-1 text-xs h-7 px-2"
+                            >
+                              <PowerOff className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Sortable action list */}
+                {actions.length > 0 && (
+                  <div className="border-t pt-3">
+                    <Label className="text-sm sm:text-base mb-2 block">
+                      Ordem de execução
+                    </Label>
+                    <RoutineActionList
+                      actions={actions}
+                      devices={devices}
+                      onActionsChange={setActions}
+                    />
+                  </div>
+                )}
+
                 {actions.length === 0 && (
-                  <p className="text-center text-xs sm:text-sm text-muted-foreground">
+                  <p className="text-center text-xs sm:text-sm text-muted-foreground py-2">
                     Selecione pelo menos um dispositivo
                   </p>
                 )}

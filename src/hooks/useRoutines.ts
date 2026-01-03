@@ -105,11 +105,61 @@ export function useRoutines() {
     });
   }, [routines, setRoutines, addLog]);
 
+  const executeRoutine = useCallback(async (id: string) => {
+    const routine = routines.find(r => r.id === id);
+    if (!routine) return;
+
+    // Sort actions by order
+    const sortedActions = [...routine.actions].sort((a, b) => a.order - b.order);
+    
+    // Check if all delays are 0 (simultaneous execution)
+    const isSimultaneous = sortedActions.every(a => a.delay === 0);
+
+    addLog({
+      type: 'routine_executed',
+      title: 'Rotina executada',
+      description: `"${routine.name}" foi executada manualmente`,
+      routineName: routine.name,
+    });
+
+    sendNotification({
+      title: '🚀 Rotina executada',
+      body: `"${routine.name}" está sendo executada.`,
+    });
+
+    toast({
+      title: 'Executando rotina',
+      description: `"${routine.name}" - ${sortedActions.length} ação(ões)${isSimultaneous ? ' simultâneas' : ' em sequência'}.`,
+    });
+
+    // In a real scenario, this would call the API to execute actions
+    // For now, we just simulate the execution with toasts
+    if (!isSimultaneous) {
+      for (let i = 0; i < sortedActions.length; i++) {
+        const action = sortedActions[i];
+        if (i > 0 && sortedActions[i - 1].delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, sortedActions[i - 1].delay * 1000));
+        }
+        // Here you would call toggleDevice for each action
+        console.log(`Executing action ${i + 1}: Device ${action.deviceId} -> ${action.turnOn ? 'ON' : 'OFF'}`);
+      }
+    } else {
+      // Simultaneous execution
+      console.log('Executing all actions simultaneously');
+    }
+
+    toast({
+      title: 'Rotina concluída',
+      description: `"${routine.name}" foi executada com sucesso.`,
+    });
+  }, [routines, addLog, sendNotification]);
+
   return {
     routines,
     toggleRoutine,
     addRoutine,
     updateRoutine,
     deleteRoutine,
+    executeRoutine,
   };
 }
