@@ -6,6 +6,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ActivityLogPanel } from '@/components/ActivityLogPanel';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 import {
   Tooltip,
   TooltipContent,
@@ -92,6 +93,8 @@ export function Header() {
               )}
             </motion.div>
           </Button>
+          
+          <ConnectionStatus />
           
           <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-primary/20 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />

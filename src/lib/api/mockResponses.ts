@@ -1,7 +1,8 @@
 // Mock responses for local development
 // These will be replaced by actual FastAPI responses
 
-import { ApiDevice, LoginResponse, MonitoringStatus } from './types';
+import { ApiDevice, ApiRoutine, ApiRoutineAction, LoginResponse, MonitoringStatus } from './types';
+import { Routine, RoutineAction, WeekDay } from '@/types/device';
 
 // Simple hash function for mock password validation
 const simpleHash = (str: string): string => {
@@ -105,6 +106,8 @@ export const mockDevices: ApiDevice[] = [
   },
 ];
 
+export const mockRoutines: ApiRoutine[] = [];
+
 export const mockMonitoringStatus: MonitoringStatus = {
   is_running: false,
   uptime_seconds: 0,
@@ -150,4 +153,50 @@ export const deviceToApiDevice = (device: {
   ip: device.ip,
   community_string: device.communityString,
   port: device.port,
+});
+
+// Convert API routine action to frontend format
+export const apiRoutineActionToRoutineAction = (apiAction: ApiRoutineAction): RoutineAction => ({
+  deviceId: apiAction.device_id,
+  turnOn: apiAction.turn_on,
+  order: apiAction.order,
+  delay: apiAction.delay,
+});
+
+// Convert frontend routine action to API format
+export const routineActionToApiRoutineAction = (action: RoutineAction): ApiRoutineAction => ({
+  device_id: action.deviceId,
+  turn_on: action.turnOn,
+  order: action.order,
+  delay: action.delay,
+});
+
+// Convert API routine to frontend format
+export const apiRoutineToRoutine = (apiRoutine: ApiRoutine): Routine => ({
+  id: apiRoutine.id,
+  name: apiRoutine.name,
+  isActive: apiRoutine.is_active,
+  triggerType: apiRoutine.trigger_type,
+  triggerTime: apiRoutine.trigger_time,
+  weekDays: apiRoutine.week_days as WeekDay[],
+  triggerRoutineId: apiRoutine.trigger_routine_id,
+  triggerDeviceId: apiRoutine.trigger_device_id,
+  triggerDeviceState: apiRoutine.trigger_device_state,
+  triggerCooldownMinutes: apiRoutine.trigger_cooldown_minutes,
+  actions: apiRoutine.actions.map(apiRoutineActionToRoutineAction),
+});
+
+// Convert frontend routine to API format
+export const routineToApiRoutine = (routine: Routine): ApiRoutine => ({
+  id: routine.id,
+  name: routine.name,
+  is_active: routine.isActive,
+  trigger_type: routine.triggerType === 'startup' ? 'manual' : routine.triggerType,
+  trigger_time: routine.triggerTime,
+  week_days: routine.weekDays,
+  trigger_routine_id: routine.triggerRoutineId,
+  trigger_device_id: routine.triggerDeviceId,
+  trigger_device_state: routine.triggerDeviceState,
+  trigger_cooldown_minutes: routine.triggerCooldownMinutes,
+  actions: routine.actions.map(routineActionToApiRoutineAction),
 });
