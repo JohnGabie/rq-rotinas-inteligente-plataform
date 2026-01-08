@@ -3,6 +3,7 @@ import { mockLogin } from '@/lib/api/mockResponses';
 import { AuthUser, LoginResponse } from '@/lib/api/types';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { apiClient } from '@/lib/api/client';
+import { USE_MOCK_API } from '@/lib/api/mode';
 
 interface AuthSession {
   token: string;
@@ -12,9 +13,6 @@ interface AuthSession {
 
 const STORAGE_KEY = 'rotina-inteligente-session';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-// Flag to use mock or real API
-const USE_MOCK_API = true;
 
 export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(() => {

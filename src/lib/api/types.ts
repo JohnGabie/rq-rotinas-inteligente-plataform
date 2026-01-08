@@ -64,9 +64,54 @@ export interface MonitoringStatus {
   last_check?: string;
 }
 
+// Routine Types from API
+export interface ApiRoutineAction {
+  device_id: string;
+  turn_on: boolean;
+  order: number;
+  delay: number;
+}
+
+export interface ApiRoutine {
+  id: string;
+  name: string;
+  is_active: boolean;
+  trigger_type: 'time' | 'manual' | 'routine_complete' | 'device_state';
+  trigger_time?: string;
+  week_days: string[];
+  trigger_routine_id?: string;
+  trigger_device_id?: string;
+  trigger_device_state?: 'on' | 'off';
+  trigger_cooldown_minutes?: number;
+  actions: ApiRoutineAction[];
+}
+
+export interface RoutineToggleRequest {
+  is_active: boolean;
+}
+
+export interface RoutineExecuteResponse {
+  success: boolean;
+  routine_id: string;
+  executed_actions: number;
+  failed_actions: number;
+  execution_time_ms: number;
+}
+
+// Activity Types from API
+export interface ApiActivityLog {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  device_name?: string;
+  routine_name?: string;
+  timestamp: string;
+}
+
 // WebSocket Message Types
 export interface WsMessage {
-  type: 'device_update' | 'monitoring_status' | 'error' | 'ping';
+  type: 'device_update' | 'monitoring_status' | 'routine_executed' | 'error' | 'ping';
   payload: unknown;
 }
 

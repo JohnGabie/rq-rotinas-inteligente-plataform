@@ -5,13 +5,25 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: '/api/auth/login',
   AUTH_LOGOUT: '/api/auth/logout',
+  AUTH_ME: '/api/auth/me',
   
   // Devices
   DEVICES: '/api/devices',
-  SNMP_OUTLET: '/api/snmp/outlet',
-  TUYA_DEVICE: '/api/tuya/device',
+  DEVICE_BY_ID: (id: string) => `/api/devices/${id}`,
+  DEVICE_TOGGLE: (id: string) => `/api/devices/${id}/toggle`,
+  DEVICES_TOGGLE_ALL: '/api/devices/toggle-all',
+  
+  // Routines
+  ROUTINES: '/api/routines',
+  ROUTINE_BY_ID: (id: string) => `/api/routines/${id}`,
+  ROUTINE_TOGGLE: (id: string) => `/api/routines/${id}/toggle`,
+  ROUTINE_EXECUTE: (id: string) => `/api/routines/${id}/execute`,
+  
+  // Activities
+  ACTIVITIES: '/api/activities',
   
   // Monitoring
+  MONITORING_STATUS: '/api/monitoring/status',
   MONITORING_START: '/api/monitoring/start',
   MONITORING_STOP: '/api/monitoring/stop',
   
