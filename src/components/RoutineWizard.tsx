@@ -158,7 +158,7 @@ export function RoutineWizard({
         return true;
       case 3:
         if (triggerType === 'time') return triggerTime && weekDays.length > 0;
-        if (triggerType === 'manual' || triggerType === 'startup') return true;
+        if (triggerType === 'manual') return true;
         if (triggerType === 'routine_complete') return !!triggerRoutineId;
         if (triggerType === 'device_state') return !!triggerDeviceId;
         return true;

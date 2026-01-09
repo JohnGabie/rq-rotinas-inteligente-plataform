@@ -46,7 +46,6 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
   const getTriggerIcon = () => {
     switch (routine.triggerType) {
       case 'time': return Clock;
-      case 'startup': return Zap;
       case 'manual': return Hand;
       case 'routine_complete': return GitBranch;
       case 'device_state': return ToggleRight;
@@ -58,8 +57,6 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
     switch (routine.triggerType) {
       case 'time':
         return { label: 'Horário', variant: 'secondary' as const };
-      case 'startup':
-        return { label: 'Ao iniciar', variant: 'secondary' as const };
       case 'manual':
         return { label: 'Manual', variant: 'outline' as const };
       case 'routine_complete':
@@ -117,11 +114,6 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
                 <span className="flex items-center gap-1">
                   <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                   Às {routine.triggerTime}
-                </span>
-              ) : routine.triggerType === 'startup' ? (
-                <span className="flex items-center gap-1">
-                  <Zap className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                  Ao iniciar
                 </span>
               ) : routine.triggerType === 'manual' ? (
                 <span className="flex items-center gap-1">
