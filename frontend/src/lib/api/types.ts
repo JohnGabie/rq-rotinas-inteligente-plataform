@@ -1,13 +1,65 @@
-// API Response Types for FastAPI Backend
+/**
+ * TypeScript Types para API do Backend
+ * Sincronizado com o backend FastAPI
+ */
 
-export interface ApiResponse<T> {
+// ============= ENUMS =============
+
+export type DeviceType = 'tuya' | 'snmp';
+export type DeviceStatus = 'online' | 'offline';
+export type DeviceIcon = 
+  | 'plug' | 'monitor' | 'tv' | 'air-vent' | 'printer'
+  | 'server' | 'router' | 'lightbulb' | 'camera'
+  | 'coffee' | 'fan' | 'speaker' | 'refrigerator';
+
+export type TriggerType = 'time' | 'manual' | 'routine_complete' | 'device_state';
+export type WeekDay = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
+export type TriggerDeviceState = 'on' | 'off';
+
+export type ActivityType = 
+  | 'device_on' | 'device_off'
+  | 'device_added' | 'device_updated' | 'device_deleted'
+  | 'routine_activated' | 'routine_deactivated'
+  | 'routine_created' | 'routine_updated' | 'routine_deleted'
+  | 'routine_executed'
+  | 'master_switch';
+
+export type UserRole = 'admin' | 'user';
+
+// ============= API RESPONSE =============
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
-  error?: string;
   message?: string;
+  error?: string;
 }
 
-// Auth Types
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+// ============= USER =============
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  is_active: boolean;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role?: UserRole;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -17,34 +69,50 @@ export interface LoginResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
+  user: User;
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-}
+// ============= DEVICE =============
 
-// Device Types from API
 export interface ApiDevice {
   id: string;
   name: string;
-  type: 'tuya' | 'snmp';
-  icon?: string;
+  type: DeviceType;
+  icon: DeviceIcon;
   is_on: boolean;
-  status: 'online' | 'offline';
-  // Tuya specific
+  status: DeviceStatus;
+  // Tuya
   device_id?: string;
   local_key?: string;
-  // SNMP specific
+  // SNMP
   ip?: string;
   community_string?: string;
   port?: number;
+  snmp_base_oid?: string;
+  snmp_outlet_number?: number;
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeviceCreateRequest {
+  name: string;
+  type: DeviceType;
+  icon?: DeviceIcon;
+  // Tuya
+  device_id?: string;
+  local_key?: string;
+  // SNMP
+  ip?: string;
+  community_string?: string;
+  port?: number;
+  snmp_base_oid?: string;
+  snmp_outlet_number?: number;
+}
+
+export interface DeviceUpdateRequest {
+  name?: string;
+  icon?: DeviceIcon;
 }
 
 export interface DeviceToggleRequest {
@@ -52,20 +120,33 @@ export interface DeviceToggleRequest {
 }
 
 export interface DeviceToggleResponse {
-  success: boolean;
   device_id: string;
   new_state: boolean;
+  executed_at: string;
 }
 
-// Monitoring Types
-export interface MonitoringStatus {
-  is_running: boolean;
-  uptime_seconds?: number;
-  last_check?: string;
+export interface DeviceToggleAllRequest {
+  state: boolean;
 }
 
-// Routine Types from API
+export interface DeviceToggleAllResponse {
+  toggled_count: number;
+  failed_count: number;
+  new_state: boolean;
+  failed_devices: string[];
+}
+
+// ============= ROUTINE =============
+
 export interface ApiRoutineAction {
+  id?: string;
+  device_id: string;
+  turn_on: boolean;
+  order: number;
+  delay: number;
+}
+
+export interface RoutineActionCreate {
   device_id: string;
   turn_on: boolean;
   order: number;
@@ -76,14 +157,44 @@ export interface ApiRoutine {
   id: string;
   name: string;
   is_active: boolean;
-  trigger_type: 'time' | 'manual' | 'routine_complete' | 'device_state';
+  trigger_type: TriggerType;
+  // Time trigger
   trigger_time?: string;
-  week_days: string[];
+  week_days: WeekDay[];
+  // Routine trigger
+  trigger_routine_id?: string;
+  // Device trigger
+  trigger_device_id?: string;
+  trigger_device_state?: TriggerDeviceState;
+  trigger_cooldown_minutes: number;
+  // Actions
+  actions: ApiRoutineAction[];
+  last_executed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineCreateRequest {
+  name: string;
+  trigger_type: TriggerType;
+  trigger_time?: string;
+  week_days?: WeekDay[];
   trigger_routine_id?: string;
   trigger_device_id?: string;
-  trigger_device_state?: 'on' | 'off';
+  trigger_device_state?: TriggerDeviceState;
   trigger_cooldown_minutes?: number;
-  actions: ApiRoutineAction[];
+  actions: RoutineActionCreate[];
+}
+
+export interface RoutineUpdateRequest {
+  name?: string;
+  trigger_time?: string;
+  week_days?: WeekDay[];
+  trigger_routine_id?: string;
+  trigger_device_id?: string;
+  trigger_device_state?: TriggerDeviceState;
+  trigger_cooldown_minutes?: number;
+  actions?: RoutineActionCreate[];
 }
 
 export interface RoutineToggleRequest {
@@ -91,25 +202,50 @@ export interface RoutineToggleRequest {
 }
 
 export interface RoutineExecuteResponse {
-  success: boolean;
   routine_id: string;
   executed_actions: number;
   failed_actions: number;
   execution_time_ms: number;
+  executed_at: string;
+  results: Array<{
+    device_id: string;
+    success: boolean;
+    executed_at: string;
+    error?: string;
+  }>;
 }
 
-// Activity Types from API
+// ============= ACTIVITY LOG =============
+
 export interface ApiActivityLog {
   id: string;
-  type: string;
+  type: ActivityType;
   title: string;
-  description: string;
+  description?: string;
   device_name?: string;
   routine_name?: string;
-  timestamp: string;
+  timestamp: number; // Unix timestamp em ms
+  created_at: string;
 }
 
-// WebSocket Message Types
+// ============= MONITORING =============
+
+export interface MonitoringStatus {
+  is_running: boolean;
+  uptime_seconds: number;
+  check_count: number;
+  last_check?: string;
+  check_interval_seconds: number;
+}
+
+export interface ScheduledJob {
+  id: string;
+  name: string;
+  next_run?: string;
+}
+
+// ============= WEBSOCKET =============
+
 export interface WsMessage {
   type: 'device_update' | 'monitoring_status' | 'routine_executed' | 'error' | 'ping';
   payload: unknown;
@@ -118,5 +254,11 @@ export interface WsMessage {
 export interface WsDeviceUpdate {
   device_id: string;
   is_on: boolean;
-  status: 'online' | 'offline';
+  status: DeviceStatus;
+}
+
+export interface WsRoutineExecuted {
+  routine_id: string;
+  executed_actions: number;
+  failed_actions: number;
 }

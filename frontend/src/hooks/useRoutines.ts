@@ -7,7 +7,7 @@ import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
-import { ApiRoutine, RoutineExecuteResponse } from '@/lib/api/types';
+import { ApiRoutine, RoutineExecuteResponse, RoutineCreateRequest, RoutineUpdateRequest } from '@/lib/api/types';
 import { mockRoutines, apiRoutineToRoutine, routineToApiRoutine } from '@/lib/api/mockResponses';
 import { USE_MOCK_API } from '@/lib/api/mode';
 
@@ -105,20 +105,37 @@ export function useRoutines() {
   // Mutation for adding a routine
   const addMutation = useMutation({
     mutationFn: async (routine: Omit<Routine, 'id'>): Promise<Routine> => {
-      const newRoutine: Routine = {
-        ...routine,
-        id: Date.now().toString(),
-      };
-
       if (!USE_MOCK_API) {
-        const apiRoutine = routineToApiRoutine(newRoutine);
-        const response = await apiClient.post<ApiRoutine>(API_ENDPOINTS.ROUTINES, apiRoutine);
+        const createRequest: RoutineCreateRequest = {
+          name: routine.name,
+          trigger_type: routine.triggerType,
+          trigger_time: routine.triggerTime,
+          week_days: routine.weekDays,
+          trigger_routine_id: routine.triggerRoutineId,
+          trigger_device_id: routine.triggerDeviceId,
+          trigger_device_state: routine.triggerDeviceState,
+          trigger_cooldown_minutes: routine.triggerCooldownMinutes,
+          actions: routine.actions.map(a => ({
+            device_id: a.deviceId,
+            turn_on: a.turnOn,
+            order: a.order,
+            delay: a.delay,
+          })),
+        };
+        const response = await apiClient.post<ApiRoutine>(API_ENDPOINTS.ROUTINES, createRequest);
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Erro ao criar rotina');
         }
         return apiRoutineToRoutine(response.data);
       }
 
+      // Mock mode: generate local ID
+      const newRoutine: Routine = {
+        ...routine,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       return newRoutine;
     },
     onSuccess: (newRoutine) => {
@@ -152,9 +169,26 @@ export function useRoutines() {
       const oldRoutine = routines.find(r => r.id === id);
 
       if (!USE_MOCK_API) {
+        const updateRequest: RoutineUpdateRequest = {};
+        if (updates.name !== undefined) updateRequest.name = updates.name;
+        if (updates.triggerTime !== undefined) updateRequest.trigger_time = updates.triggerTime;
+        if (updates.weekDays !== undefined) updateRequest.week_days = updates.weekDays;
+        if (updates.triggerRoutineId !== undefined) updateRequest.trigger_routine_id = updates.triggerRoutineId;
+        if (updates.triggerDeviceId !== undefined) updateRequest.trigger_device_id = updates.triggerDeviceId;
+        if (updates.triggerDeviceState !== undefined) updateRequest.trigger_device_state = updates.triggerDeviceState;
+        if (updates.triggerCooldownMinutes !== undefined) updateRequest.trigger_cooldown_minutes = updates.triggerCooldownMinutes;
+        if (updates.actions !== undefined) {
+          updateRequest.actions = updates.actions.map(a => ({
+            device_id: a.deviceId,
+            turn_on: a.turnOn,
+            order: a.order,
+            delay: a.delay,
+          }));
+        }
+
         const response = await apiClient.put<ApiRoutine>(
           API_ENDPOINTS.ROUTINE_BY_ID(id),
-          updates
+          updateRequest
         );
         if (!response.success) {
           throw new Error(response.error || 'Erro ao atualizar rotina');
@@ -164,11 +198,12 @@ export function useRoutines() {
       return { id, updates, oldRoutine };
     },
     onSuccess: ({ id, updates, oldRoutine }) => {
+      const updatedData = { ...updates, updatedAt: new Date().toISOString() };
       queryClient.setQueryData<Routine[]>(['routines'], (old) =>
-        old?.map(r => r.id === id ? { ...r, ...updates } : r)
+        old?.map(r => r.id === id ? { ...r, ...updatedData } : r)
       );
       setLocalRoutines(prev =>
-        prev.map(r => r.id === id ? { ...r, ...updates } : r)
+        prev.map(r => r.id === id ? { ...r, ...updatedData } : r)
       );
 
       addLog({
@@ -280,6 +315,15 @@ export function useRoutines() {
       }
     },
     onSuccess: ({ routine, result }) => {
+      // Update last executed timestamp
+      const updatedData = { lastExecutedAt: new Date().toISOString() };
+      queryClient.setQueryData<Routine[]>(['routines'], (old) =>
+        old?.map(r => r.id === routine.id ? { ...r, ...updatedData } : r)
+      );
+      setLocalRoutines(prev =>
+        prev.map(r => r.id === routine.id ? { ...r, ...updatedData } : r)
+      );
+
       addLog({
         type: 'routine_executed',
         title: 'Rotina executada',
