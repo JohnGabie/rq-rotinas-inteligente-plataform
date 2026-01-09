@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { mockLogin } from '@/lib/api/mockResponses';
-import { AuthUser, LoginResponse } from '@/lib/api/types';
+import { AuthUser, LoginResponse, User } from '@/lib/api/types';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { apiClient } from '@/lib/api/client';
 import { USE_MOCK_API } from '@/lib/api/mode';
@@ -13,6 +13,14 @@ interface AuthSession {
 
 const STORAGE_KEY = 'rotina-inteligente-session';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Convert API User to AuthUser
+const userToAuthUser = (user: User): AuthUser => ({
+  id: user.id,
+  email: user.email,
+  name: user.name,
+  role: user.role,
+});
 
 export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(() => {
@@ -85,8 +93,8 @@ export function useAuth() {
 
       const newSession: AuthSession = {
         token: response.access_token,
-        user: response.user,
-        expiresAt: Date.now() + SESSION_DURATION,
+        user: userToAuthUser(response.user),
+        expiresAt: Date.now() + (response.expires_in * 1000),
       };
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession));

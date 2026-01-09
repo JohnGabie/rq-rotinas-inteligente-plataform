@@ -31,9 +31,14 @@ export interface Device {
   ip?: string;
   communityString?: string;
   port?: number;
+  snmpBaseOid?: string;
+  snmpOutletNumber?: number;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export type TriggerType = 'time' | 'startup' | 'manual' | 'routine_complete' | 'device_state';
+export type TriggerType = 'time' | 'manual' | 'routine_complete' | 'device_state';
 
 export type WeekDay = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
 
@@ -55,9 +60,14 @@ export interface Routine {
   triggerCooldownMinutes?: number;
   // Ações
   actions: RoutineAction[];
+  // Timestamps
+  lastExecutedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RoutineAction {
+  id?: string;
   deviceId: string;
   turnOn: boolean;
   order: number;

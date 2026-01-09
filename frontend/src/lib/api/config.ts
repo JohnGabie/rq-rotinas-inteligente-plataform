@@ -1,31 +1,35 @@
 // API Configuration - Change this to your FastAPI backend URL
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// API version prefix
+const API_PREFIX = '/api/v1';
+
 export const API_ENDPOINTS = {
   // Auth
-  AUTH_LOGIN: '/api/auth/login',
-  AUTH_LOGOUT: '/api/auth/logout',
-  AUTH_ME: '/api/auth/me',
+  AUTH_LOGIN: `${API_PREFIX}/auth/login`,
+  AUTH_LOGOUT: `${API_PREFIX}/auth/logout`,
+  AUTH_ME: `${API_PREFIX}/auth/me`,
   
   // Devices
-  DEVICES: '/api/devices',
-  DEVICE_BY_ID: (id: string) => `/api/devices/${id}`,
-  DEVICE_TOGGLE: (id: string) => `/api/devices/${id}/toggle`,
-  DEVICES_TOGGLE_ALL: '/api/devices/toggle-all',
+  DEVICES: `${API_PREFIX}/devices`,
+  DEVICE_BY_ID: (id: string) => `${API_PREFIX}/devices/${id}`,
+  DEVICE_TOGGLE: (id: string) => `${API_PREFIX}/devices/${id}/toggle`,
+  DEVICE_SYNC: (id: string) => `${API_PREFIX}/devices/${id}/sync`,
+  DEVICES_TOGGLE_ALL: `${API_PREFIX}/devices/toggle-all`,
   
   // Routines
-  ROUTINES: '/api/routines',
-  ROUTINE_BY_ID: (id: string) => `/api/routines/${id}`,
-  ROUTINE_TOGGLE: (id: string) => `/api/routines/${id}/toggle`,
-  ROUTINE_EXECUTE: (id: string) => `/api/routines/${id}/execute`,
+  ROUTINES: `${API_PREFIX}/routines`,
+  ROUTINE_BY_ID: (id: string) => `${API_PREFIX}/routines/${id}`,
+  ROUTINE_TOGGLE: (id: string) => `${API_PREFIX}/routines/${id}/toggle`,
+  ROUTINE_EXECUTE: (id: string) => `${API_PREFIX}/routines/${id}/execute`,
   
   // Activities
-  ACTIVITIES: '/api/activities',
+  ACTIVITIES: `${API_PREFIX}/activities`,
   
   // Monitoring
-  MONITORING_STATUS: '/api/monitoring/status',
-  MONITORING_START: '/api/monitoring/start',
-  MONITORING_STOP: '/api/monitoring/stop',
+  MONITORING_STATUS: `${API_PREFIX}/monitoring/status`,
+  MONITORING_START: `${API_PREFIX}/monitoring/start`,
+  MONITORING_STOP: `${API_PREFIX}/monitoring/stop`,
   
   // WebSocket
   WS: '/ws',

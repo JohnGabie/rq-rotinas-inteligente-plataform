@@ -16,8 +16,9 @@ export interface ActivityLog {
   id: string;
   type: ActivityType;
   title: string;
-  description: string;
-  timestamp: number;
+  description?: string;
+  timestamp: number; // Unix timestamp em ms
   deviceName?: string;
   routineName?: string;
+  createdAt?: string;
 }
