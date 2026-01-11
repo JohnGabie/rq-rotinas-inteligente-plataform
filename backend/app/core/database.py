@@ -7,14 +7,32 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from backend.app.core.config import settings
 
-# Engine do SQLAlchemy
+# 1. Preparamos os argumentos base que funcionam em qualquer banco
+connect_args = {}
+engine_kwargs = {
+    "echo": settings.DEBUG
+}
+
+# 2. Lógica condicional baseada no driver
+if settings.DATABASE_URL.startswith("sqlite"):
+    # SQLite: Necessário para FastAPI/Pytest não travarem as threads
+    connect_args["check_same_thread"] = False
+else:
+    # PostgreSQL: Aplica configurações de pool e performance
+    engine_kwargs.update({
+        "pool_pre_ping": True,
+        "pool_size": 10,
+        "max_overflow": 20,
+    })
+
+# 3. Criação do Engine com os argumentos processados
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,  # Verifica conexão antes de usar
-    pool_size=10,        # Pool de conexões
-    max_overflow=20,     # Conexões extras se pool cheio
-    echo=settings.DEBUG  # Log de SQL queries em modo debug
+    connect_args=connect_args,
+    **engine_kwargs
 )
+
+# --- O restante do código permanece igual ---
 
 # Session factory
 SessionLocal = sessionmaker(
@@ -26,18 +44,7 @@ SessionLocal = sessionmaker(
 # Base class para todos os models
 Base = declarative_base()
 
-
-# Dependency para usar em endpoints FastAPI
 def get_db():
-    """
-    Dependency que fornece sessão do banco
-    Fecha automaticamente após o request
-
-    Usage:
-        @app.get("/items")
-        def get_items(db: Session = Depends(get_db)):
-            return db.query(Item).all()
-    """
     db = SessionLocal()
     try:
         yield db

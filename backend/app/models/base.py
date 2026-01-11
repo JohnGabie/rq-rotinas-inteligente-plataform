@@ -1,23 +1,51 @@
-"""
-Base Model com campos comuns (id, timestamps)
-Todos os models herdam desta classe
-"""
-from sqlalchemy import Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
 import uuid
+from sqlalchemy import Column, DateTime, func, String, TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID, INET as PG_INET
 from backend.app.core.database import Base
 
+# Tipo GUID: Usa UUID nativo no Postgres e String(36) no SQLite
+class GUID(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(PG_UUID())
+        else:
+            return dialect.type_descriptor(String(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        if not isinstance(value, uuid.UUID):
+            return uuid.UUID(value)
+        return value
+
+# Tipo IPAddress: Usa INET no Postgres e String(45) no SQLite
+class IPAddress(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(PG_INET())
+        else:
+            return dialect.type_descriptor(String(45))
 
 class BaseModel(Base):
     """
-    Classe base abstrata para todos os models
-    Fornece: id UUID, created_at, updated_at
+    Base para todos os models do sistema
+    Inclui ID (UUID) e timestamps automáticos
     """
     __abstract__ = True
 
     id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         primary_key=True,
         default=uuid.uuid4,
         unique=True,
@@ -27,17 +55,13 @@ class BaseModel(Base):
 
     created_at = Column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        server_default=func.now(),
         nullable=False
     )
 
     updated_at = Column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=False
     )
-
-    def __repr__(self):
-        """Representação string do objeto"""
-        return f"<{self.__class__.__name__}(id={self.id})>"

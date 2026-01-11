@@ -1,10 +1,12 @@
 """
 Device Model - Dispositivos IoT (Tuya e SNMP)
+Corrigido para compatibilidade SQLite (Testes) e PostgreSQL (Produção)
 """
 from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
+
+# Importamos os tipos customizados e o BaseModel
+from backend.app.models.base import BaseModel, GUID, IPAddress
 from backend.app.models.enums import DeviceType, DeviceStatus, DeviceIcon
 
 
@@ -15,8 +17,14 @@ class Device(BaseModel):
     """
     __tablename__ = "devices"
 
-    # Campos básicos
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # CORREÇÃO 1: user_id usa GUID() em vez de UUID nativo
+    user_id = Column(
+        GUID(),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
     name = Column(String(255), nullable=False)
     type = Column(SQLEnum(DeviceType), nullable=False, index=True)
     icon = Column(SQLEnum(DeviceIcon), default=DeviceIcon.PLUG, nullable=False)
@@ -24,15 +32,16 @@ class Device(BaseModel):
     status = Column(SQLEnum(DeviceStatus), default=DeviceStatus.OFFLINE, nullable=False, index=True)
 
     # Campos específicos do Tuya
-    device_id = Column(String(255), nullable=True)  # Device ID do Tuya
-    local_key = Column(String(255), nullable=True)  # Local Key do Tuya
+    device_id = Column(String(255), nullable=True)
+    local_key = Column(String(255), nullable=True)
 
-    # Campos específicos do SNMP
-    ip = Column(INET, nullable=True)  # IP do dispositivo SNMP
-    community_string = Column(String(255), nullable=True)  # Community string
-    port = Column(Integer, default=161, nullable=True)  # Porta SNMP (padrão 161)
-    snmp_base_oid = Column(String(255), nullable=True)  # OID base para o dispositivo
-    snmp_outlet_number = Column(Integer, nullable=True)  # Número da tomada (1-10)
+    # CORREÇÃO 2: ip usa IPAddress() em vez de INET nativo
+    ip = Column(IPAddress(), nullable=True)
+
+    community_string = Column(String(255), nullable=True)
+    port = Column(Integer, default=161, nullable=True)
+    snmp_base_oid = Column(String(255), nullable=True)
+    snmp_outlet_number = Column(Integer, nullable=True)
 
     # Relacionamentos
     user = relationship("User", back_populates="devices")
@@ -49,7 +58,6 @@ class Device(BaseModel):
         foreign_keys="[ActivityLog.device_id]"
     )
 
-    # Rotinas que usam este device como gatilho
     triggered_routines = relationship(
         "Routine",
         back_populates="trigger_device",
@@ -61,22 +69,18 @@ class Device(BaseModel):
 
     @property
     def is_tuya(self) -> bool:
-        """Verifica se é dispositivo Tuya"""
         return self.type == DeviceType.TUYA
 
     @property
     def is_snmp(self) -> bool:
-        """Verifica se é dispositivo SNMP"""
         return self.type == DeviceType.SNMP
 
     def validate_tuya_fields(self) -> bool:
-        """Valida se campos Tuya estão preenchidos"""
         if self.is_tuya:
             return bool(self.device_id and self.local_key)
         return True
 
     def validate_snmp_fields(self) -> bool:
-        """Valida se campos SNMP estão preenchidos"""
         if self.is_snmp:
             return bool(
                 self.ip

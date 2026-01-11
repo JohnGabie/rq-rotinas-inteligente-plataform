@@ -2,9 +2,8 @@
 ActivityLog Model - Histórico de atividades
 """
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
+from backend.app.models.base import BaseModel, GUID # Importando o GUID customizado
 from backend.app.models.enums import ActivityType
 
 
@@ -15,8 +14,9 @@ class ActivityLog(BaseModel):
     """
     __tablename__ = "activity_logs"
 
+    # CORREÇÃO: user_id usando GUID()
     user_id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -26,17 +26,18 @@ class ActivityLog(BaseModel):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
 
-    # Referências opcionais (snapshot dos nomes)
+    # CORREÇÃO: device_id usando GUID()
     device_id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("devices.id", ondelete="SET NULL"),
         nullable=True,
         index=True
     )
     device_name = Column(String(255), nullable=True)  # Snapshot do nome
 
+    # CORREÇÃO: routine_id usando GUID()
     routine_id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("routines.id", ondelete="SET NULL"),
         nullable=True,
         index=True
