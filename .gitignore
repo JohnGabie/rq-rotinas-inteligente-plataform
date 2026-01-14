@@ -1,0 +1,17 @@
+# Lixos de execução
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambientes virtuais
+env/
+venv/
+.env
+
+# IDEs
+.idea/
+.vscode/
+
+# Banco de dados local (se usar sqlite)
+*.sqlite3
