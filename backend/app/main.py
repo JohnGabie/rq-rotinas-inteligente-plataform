@@ -3,7 +3,8 @@ FastAPI Application Entry Point
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.core.config import settings
+from app.core.config import settings
+from app.api.v1.router import api_router
 
 # Criar aplicação FastAPI
 app = FastAPI(
@@ -39,7 +40,7 @@ async def health_check():
     """Detailed health check"""
     return {
         "status": "healthy",
-        "database": "connected",  # Vamos implementar check real depois
+        "database": "connected",
         "services": {
             "tuya": "not_configured",
             "snmp": "ready"
@@ -48,7 +49,6 @@ async def health_check():
 
 
 # Incluir routers da API
-from backend.app.api.v1.router import api_router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 

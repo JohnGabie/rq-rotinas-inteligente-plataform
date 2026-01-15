@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
-import { mockDevices, apiDeviceToDevice, deviceToApiDevice } from '@/lib/api/mockResponses';
+import { apiDeviceToDevice, deviceToApiDevice } from '@/lib/api/mockResponses';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiDevice, DeviceToggleResponse, DeviceToggleAllResponse } from '@/lib/api/types';
@@ -13,12 +13,9 @@ import { USE_MOCK_API } from '@/lib/api/mode';
 
 const STORAGE_KEY = 'rotina-inteligente-devices';
 
-// Convert mock API devices to frontend format for initial state
-const initialDevices = mockDevices.map(apiDeviceToDevice);
-
 export function useDevices() {
   const queryClient = useQueryClient();
-  const [localDevices, setLocalDevices] = useLocalStorage<Device[]>(STORAGE_KEY, initialDevices);
+  const [localDevices, setLocalDevices] = useLocalStorage<Device[]>(STORAGE_KEY, []);
   const { addLog } = useActivityLog();
   const { sendNotification } = useNotifications();
 
