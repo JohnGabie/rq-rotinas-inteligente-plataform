@@ -1,10 +1,10 @@
-// Mock responses for local development
-// These will be replaced by actual FastAPI responses
+// API response converters and emergency mock login
+// These convert between API (snake_case) and frontend (camelCase) formats
 
-import { ApiDevice, ApiRoutine, ApiRoutineAction, LoginResponse, MonitoringStatus, User } from './types';
+import { ApiDevice, ApiRoutine, ApiRoutineAction, LoginResponse, User } from './types';
 import { Device, Routine, RoutineAction, WeekDay, DeviceIcon } from '@/types/device';
 
-// Simple hash function for mock password validation
+// Simple hash function for mock password validation (emergency fallback only)
 const simpleHash = (str: string): string => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -15,7 +15,7 @@ const simpleHash = (str: string): string => {
   return hash.toString(16);
 };
 
-// Mock user database
+// Mock user database (emergency fallback only)
 const MOCK_USERS = [
   {
     id: '1',
@@ -26,18 +26,19 @@ const MOCK_USERS = [
   },
 ];
 
-// Mock JWT token generator
+// Mock JWT token generator (emergency fallback only)
 const generateMockToken = (userId: string): string => {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = btoa(JSON.stringify({
     sub: userId,
     iat: Date.now(),
-    exp: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+    exp: Date.now() + (24 * 60 * 60 * 1000),
   }));
   const signature = btoa('mock-signature');
   return `${header}.${payload}.${signature}`;
 };
 
+// Emergency mock login - only used when USE_MOCK_API is true
 export const mockLogin = (email: string, password: string): LoginResponse | null => {
   const user = MOCK_USERS.find(u => u.email === email);
   
@@ -62,78 +63,14 @@ export const mockLogin = (email: string, password: string): LoginResponse | null
   return {
     access_token: generateMockToken(user.id),
     token_type: 'Bearer',
-    expires_in: 86400, // 24 hours in seconds
+    expires_in: 86400,
     user: mockUser,
   };
 };
 
-const now = new Date().toISOString();
-
-export const mockDevices: ApiDevice[] = [
-  {
-    id: '1',
-    name: 'Tomada do Servidor',
-    type: 'tuya',
-    icon: 'server',
-    is_on: true,
-    status: 'online',
-    device_id: 'bf1234567890abcd',
-    local_key: 'abc123def456',
-    created_at: now,
-    updated_at: now,
-  },
-  {
-    id: '2',
-    name: 'Régua do Escritório',
-    type: 'snmp',
-    icon: 'router',
-    is_on: false,
-    status: 'online',
-    ip: '192.168.1.100',
-    community_string: 'public',
-    port: 161,
-    snmp_base_oid: '1.3.6.1.4.1.17095.1.3.',
-    snmp_outlet_number: 1,
-    created_at: now,
-    updated_at: now,
-  },
-  {
-    id: '3',
-    name: 'Tomada do Café',
-    type: 'tuya',
-    icon: 'coffee',
-    is_on: true,
-    status: 'online',
-    device_id: 'cf9876543210dcba',
-    local_key: 'xyz789abc012',
-    created_at: now,
-    updated_at: now,
-  },
-  {
-    id: '4',
-    name: 'Impressora 3D',
-    type: 'snmp',
-    icon: 'printer',
-    is_on: false,
-    status: 'offline',
-    ip: '192.168.1.105',
-    community_string: 'private',
-    port: 161,
-    snmp_base_oid: '1.3.6.1.4.1.17095.1.3.',
-    snmp_outlet_number: 2,
-    created_at: now,
-    updated_at: now,
-  },
-];
-
-export const mockRoutines: ApiRoutine[] = [];
-
-export const mockMonitoringStatus: MonitoringStatus = {
-  is_running: false,
-  uptime_seconds: 0,
-  check_count: 0,
-  check_interval_seconds: 30,
-};
+// ============================================
+// API <-> Frontend Format Converters
+// ============================================
 
 // Convert API device format to frontend format
 export const apiDeviceToDevice = (apiDevice: ApiDevice): Device => ({

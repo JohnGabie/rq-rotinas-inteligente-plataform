@@ -8,7 +8,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiRoutine, RoutineExecuteResponse, RoutineCreateRequest, RoutineUpdateRequest } from '@/lib/api/types';
-import { mockRoutines, apiRoutineToRoutine, routineToApiRoutine } from '@/lib/api/mockResponses';
+import { apiRoutineToRoutine, routineToApiRoutine } from '@/lib/api/mockResponses';
 import { USE_MOCK_API } from '@/lib/api/mode';
 
 const STORAGE_KEY = 'rotina-inteligente-routines';
