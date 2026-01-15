@@ -53,8 +53,8 @@ class DeviceService:
             return False, "Dispositivo não encontrado"
 
         # Verificar se está online
-        if device.status == DeviceStatus.OFFLINE:
-            return False, "Dispositivo offline"
+        # if device.status == DeviceStatus.OFFLINE:
+        #    return False, "Dispositivo offline"
 
         # Executar comando no hardware
         success = False
@@ -198,12 +198,7 @@ class DeviceService:
             )
             return DeviceStatus.OFFLINE
 
-    def sync_device_state(
-            self,
-            db: Session,
-            *,
-            device_id: UUID
-    ) -> Optional[bool]:
+    def sync_device_state(self, db: Session, *, device_id: UUID) -> Optional[bool]:
         """
         Sincroniza estado do banco com o hardware real
 

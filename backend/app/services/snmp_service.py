@@ -27,7 +27,8 @@ class SNMPService:
         Returns:
             str: OID completo
         """
-        return f"{base_oid}{porta + 8}.0"
+        base = base_oid.rstrip('.')
+        return f"{base}.{porta + 8}.0"
 
     def _run_command(self, cmd: list) -> Dict[str, any]:
         """
