@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from datetime import datetime
-from backend.app.schemas.common import UserRole
+from app.schemas.common import UserRole
 
 
 # ============= REQUEST SCHEMAS =============

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, IPvAnyAddress, field_validator
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from backend.app.schemas.common import DeviceType, DeviceStatus, DeviceIcon
+from app.schemas.common import DeviceType, DeviceStatus, DeviceIcon
 
 
 # ============= REQUEST SCHEMAS =============

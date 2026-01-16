@@ -7,11 +7,11 @@ from typing import List
 from uuid import UUID
 from datetime import datetime
 
-from backend.app.api.deps import get_db, get_current_user
-from backend.app.models.user import User
-from backend.app.crud.device import crud_device
-from backend.app.services.device_service import device_service
-from backend.app.schemas.device import (
+from app.api.deps import get_db, get_current_user
+from app.models.user import User
+from app.crud.device import crud_device
+from app.services.device_service import device_service
+from app.schemas.device import (
     DeviceCreate,
     DeviceUpdate,
     DeviceResponse,
@@ -19,7 +19,7 @@ from backend.app.schemas.device import (
     DeviceToggleResponse,
     DeviceToggleAllResponse
 )
-from backend.app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 

@@ -15,11 +15,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
 # ----------------------------------------
 
 # Import Base e settings
-from backend.app.core.database import Base
-from backend.app.core.config import settings
+from app.core.database import Base
+from app.core.config import settings
 
 # Import todos os models para Alembic detectar
-from backend.app.models import (
+from app.models import (
     User, Device, Routine, RoutineAction, ActivityLog
 )
 

@@ -3,10 +3,10 @@ CRUD User - Operações específicas de usuário
 """
 from typing import Optional
 from sqlalchemy.orm import Session
-from backend.app.crud.base import CRUDBase
-from backend.app.models.user import User
-from backend.app.schemas.user import UserCreate, UserUpdate
-from backend.app.core.security import hash_password, verify_password
+from app.crud.base import CRUDBase
+from app.models.user import User
+from app.schemas.user import UserCreate, UserUpdate
+from app.core.security import hash_password, verify_password
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):

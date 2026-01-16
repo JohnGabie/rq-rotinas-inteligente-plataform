@@ -3,7 +3,7 @@ Configuração de logging para a aplicação
 """
 import logging
 import sys
-from backend.app.core.config import settings
+from app.core.config import settings
 
 # Configurar formato do log
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

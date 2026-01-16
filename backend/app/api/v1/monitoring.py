@@ -4,11 +4,11 @@ Monitoring Endpoints - Controle de monitoramento e scheduler
 from fastapi import APIRouter, Depends
 from typing import List
 
-from backend.app.api.deps import get_current_user
-from backend.app.models.user import User
-from backend.app.services.monitoring_service import monitoring_service
-from backend.app.services.scheduler_service import scheduler_service
-from backend.app.schemas.common import ApiResponse
+from app.api.deps import get_current_user
+from app.models.user import User
+from app.services.monitoring_service import monitoring_service
+from app.services.scheduler_service import scheduler_service
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
 

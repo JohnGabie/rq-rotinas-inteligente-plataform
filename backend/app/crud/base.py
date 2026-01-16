@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from backend.app.models.base import BaseModel as DBBaseModel
+from app.models.base import BaseModel as DBBaseModel
 
 ModelType = TypeVar("ModelType", bound=DBBaseModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)

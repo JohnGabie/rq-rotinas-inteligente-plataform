@@ -4,8 +4,8 @@ ActivityLog Model - Histórico de atividades
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
-from backend.app.models.enums import ActivityType
+from app.models.base import BaseModel
+from app.models.enums import ActivityType
 
 
 class ActivityLog(BaseModel):

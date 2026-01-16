@@ -4,13 +4,13 @@ Auth Endpoints - Login, Logout, Me
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.api.deps import get_db, get_current_user
-from backend.app.crud.user import crud_user
-from backend.app.schemas.user import UserLogin, LoginResponse, UserResponse
-from backend.app.schemas.common import ApiResponse
-from backend.app.core.security import create_access_token
-from backend.app.core.config import settings
-from backend.app.models.user import User
+from app.api.deps import get_db, get_current_user
+from app.crud.user import crud_user
+from app.schemas.user import UserLogin, LoginResponse, UserResponse
+from app.schemas.common import ApiResponse
+from app.core.security import create_access_token
+from app.core.config import settings
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

@@ -8,11 +8,11 @@ from datetime import datetime
 from typing import Dict, List
 import asyncio
 
-from backend.app.core.database import SessionLocal
-from backend.app.crud.routine import crud_routine
-from backend.app.services.routine_service import routine_service
-from backend.app.models.enums import TriggerType, WeekDay
-from backend.app.utils.logger import logger
+from app.core.database import SessionLocal
+from app.crud.routine import crud_routine
+from app.services.routine_service import routine_service
+from app.models.enums import TriggerType, WeekDay
+from app.utils.logger import logger
 
 
 class SchedulerService:

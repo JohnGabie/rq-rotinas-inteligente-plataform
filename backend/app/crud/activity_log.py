@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import datetime
 
-from backend.app.crud.base import CRUDBase
-from backend.app.models.activity_log import ActivityLog
-from backend.app.schemas.activity_log import ActivityLogCreate
+from app.crud.base import CRUDBase
+from app.models.activity_log import ActivityLog
+from app.schemas.activity_log import ActivityLogCreate
 
 
 class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate]):

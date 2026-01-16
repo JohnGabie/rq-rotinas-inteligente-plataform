@@ -5,7 +5,7 @@ from typing import TypeVar, Generic, Optional, Any
 from pydantic import BaseModel
 
 # Re-exportar enums para uso nos schemas
-from backend.app.models.enums import (
+from app.models.enums import (
     DeviceType,
     DeviceStatus,
     DeviceIcon,

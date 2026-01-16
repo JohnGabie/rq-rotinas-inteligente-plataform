@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 from datetime import datetime, time
 from typing import Optional, List
-from backend.app.schemas.common import (
+from app.schemas.common import (
     TriggerType,
     WeekDay,
     TriggerDeviceState

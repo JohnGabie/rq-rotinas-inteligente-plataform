@@ -6,21 +6,21 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from backend.app.api.deps import get_db, get_current_user
-from backend.app.models.user import User
-from backend.app.models.enums import ActivityType
-from backend.app.crud.routine import crud_routine
-from backend.app.services.routine_service import routine_service
-from backend.app.services.scheduler_service import scheduler_service
-from backend.app.models.enums import TriggerType
-from backend.app.schemas.routine import (
+from app.api.deps import get_db, get_current_user
+from app.models.user import User
+from app.models.enums import ActivityType
+from app.crud.routine import crud_routine
+from app.services.routine_service import routine_service
+from app.services.scheduler_service import scheduler_service
+from app.models.enums import TriggerType
+from app.schemas.routine import (
     RoutineCreate,
     RoutineUpdate,
     RoutineResponse,
     RoutineToggle,
     RoutineExecuteResponse
 )
-from backend.app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/routines", tags=["Routines"])
 

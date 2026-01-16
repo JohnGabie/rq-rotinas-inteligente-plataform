@@ -53,10 +53,9 @@ class Settings(BaseSettings):
     # Isso garante que ele ache o .env na pasta 'backend/',
     # não importa de onde você rode o comando (terminal raiz ou PyCharm)
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(__file__), "../../.env"),
-        env_file_encoding='utf-8',
-        case_sensitive=True,
-        extra='ignore'
+        env_file="../.env",  # <-- Coloque o caminho correto aqui. Ex: "../.env" ou "app/.env"
+        env_file_encoding="utf-8",
+        extra="ignore"
     )
 
 

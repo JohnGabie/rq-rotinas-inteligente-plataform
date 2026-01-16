@@ -5,11 +5,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from backend.app.api.deps import get_db, get_current_user
-from backend.app.models.user import User
-from backend.app.crud.activity_log import crud_activity_log
-from backend.app.schemas.activity_log import ActivityLogResponse
-from backend.app.schemas.common import ApiResponse, PaginatedResponse
+from app.api.deps import get_db, get_current_user
+from app.models.user import User
+from app.crud.activity_log import crud_activity_log
+from app.schemas.activity_log import ActivityLogResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
 
 router = APIRouter(prefix="/activities", tags=["Activity Logs"])
 

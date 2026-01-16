@@ -4,9 +4,9 @@ import os
 # Setup do caminho (igual ao seu script anterior)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from backend.app.core.database import SessionLocal
-from backend.app.crud.user import crud_user
-from backend.app.core.security import get_password_hash # Importante: hashear a senha
+from app.core.database import SessionLocal
+from app.crud.user import crud_user
+from app.core.security import hash_password # Importante: hashear a senha
 
 def fix_admin_password():
     db = SessionLocal()

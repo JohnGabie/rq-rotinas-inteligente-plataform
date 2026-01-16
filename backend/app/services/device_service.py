@@ -5,12 +5,12 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from backend.app.models.device import Device
-from backend.app.models.enums import DeviceStatus, DeviceType
-from backend.app.crud.device import crud_device
-from backend.app.services.tuya_service import tuya_service
-from backend.app.services.snmp_service import snmp_service
-from backend.app.utils.logger import logger
+from app.models.device import Device
+from app.models.enums import DeviceStatus, DeviceType
+from app.crud.device import crud_device
+from app.services.tuya_service import tuya_service
+from app.services.snmp_service import snmp_service
+from app.utils.logger import logger
 
 
 class DeviceService:

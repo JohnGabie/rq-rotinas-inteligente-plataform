@@ -1,100 +1,71 @@
-# ==============================================================================
-# CORE - FastAPI
-# ==============================================================================
-fastapi==0.128.0
-uvicorn[standard]==0.40.0
-starlette==0.50.0
-python-dotenv==1.2.1
-
-# ==============================================================================
-# VALIDAÇÃO E CONFIGURAÇÃO
-# ==============================================================================
-pydantic==2.12.5
-pydantic-core==2.41.5
-pydantic-settings==2.1.0
-annotated-types==0.7.0
-typing-extensions==4.15.0
-typing-inspection==0.4.2
-
-# ==============================================================================
-# BANCO DE DADOS E MIGRAÇÕES
-# ==============================================================================
-SQLAlchemy==2.0.23
-SQLAlchemy-Utils==0.42.1
-alembic==1.17.2
-greenlet==3.3.0
-psycopg2-binary==2.9.9
-asyncpg==0.29.0
-
-# ==============================================================================
-# SEGURANÇA E AUTENTICAÇÃO
-# ==============================================================================
-bcrypt==4.0.1
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.5.0
-python-multipart==0.0.21
-ecdsa==0.19.1
-rsa==4.9.1
-pyasn1==0.6.1
-
-# ==============================================================================
-# CLIENTES HTTP / ASYNC
-# ==============================================================================
-httpx==0.28.1
-httpcore==1.0.9
-aiohttp==3.13.3
-yarl==1.22.0
-multidict==6.7.0
-anyio==4.12.0
-h11==0.16.0
-idna==3.11
-certifi==2026.1.4
 aiohappyeyeballs==2.6.1
+aiohttp==3.13.3
 aiosignal==1.4.0
-frozenlist==1.8.0
-propcache==0.4.1
-
-# ==============================================================================
-# WEBSOCKET
-# ==============================================================================
-websockets==12.0
-
-# ==============================================================================
-# BACKGROUND TASKS / AGENDAMENTO
-# ==============================================================================
-apscheduler==3.10.4
-
-# ==============================================================================
-# TESTES E QUALIDADE
-# ==============================================================================
-pytest==9.0.1
-pytest-cov==4.1.0
-coverage==7.13.1
-Faker==40.1.0
-pluggy==1.6.0
-iniconfig==2.3.0
-
-# ==============================================================================
-# LOGGING
-# ==============================================================================
-python-json-logger==2.0.7
-Pygments==2.19.2
-
-# ==============================================================================
-# UTILITÁRIOS
-# ==============================================================================
-click==8.3.1
-packaging==25.0
-six==1.17.0
-tzdata==2025.3
-attrs==25.4.0
-MarkupSafe==3.0.3
-Mako==1.3.10
+alembic==1.17.2
 annotated-doc==0.0.4
-
-# ==============================================================================
-# IoT
-# ==============================================================================
+annotated-types==0.7.0
+anyio==4.12.0
+APScheduler==3.11.2
+attrs==25.4.0
+bcrypt==4.0.1
+certifi==2026.1.4
+cffi==2.0.0
+charset-normalizer==3.4.4
+click==8.3.1
+colorama==0.4.6
+coverage==7.13.1
+cryptography==46.0.3
+dnspython==2.8.0
+ecdsa==0.19.1
+email-validator==2.3.0
+Faker==40.1.0
+fastapi==0.128.0
+frozenlist==1.8.0
+greenlet==3.3.0
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.28.1
+idna==3.11
+iniconfig==2.3.0
+Mako==1.3.10
+MarkupSafe==3.0.3
+multidict==6.7.0
+packaging==25.0
+passlib==1.7.4
+pluggy==1.6.0
+propcache==0.4.1
+psycopg2-binary==2.9.11
+pyasn1==0.6.1
+pycparser==2.23
+pycryptodome==3.23.0
+pydantic==2.12.5
+pydantic-settings==2.12.0
+pydantic_core==2.41.5
+Pygments==2.19.2
+pytest==9.0.1
+pytest-asyncio==1.3.0
+pytest-cov==4.1.0
+python-dotenv==1.2.1
+python-jose==3.5.0
+python-multipart==0.0.21
+PyYAML==6.0.3
+requests==2.32.5
+rsa==4.9.1
+six==1.17.0
+SQLAlchemy==1.4.54
+SQLAlchemy-Utils==0.42.1
+starlette==0.50.0
 tinytuya==1.13.2
-pysnmp==4.4.12
-tuya-connector-python
+tuya-connector-python==0.1.2
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.3
+tzlocal==5.3.1
+urllib3==2.6.2
+uvicorn==0.40.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websocket-client==1.9.0
+websockets==12.0
+yarl==1.22.0

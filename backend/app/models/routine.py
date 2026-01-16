@@ -4,8 +4,8 @@ Routine & RoutineAction Models - Rotinas automatizadas
 from sqlalchemy import Column, String, Boolean, Integer, Time, ForeignKey, Enum as SQLEnum, DateTime
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
-from backend.app.models.enums import TriggerType, WeekDay, TriggerDeviceState
+from app.models.base import BaseModel
+from app.models.enums import TriggerType, WeekDay, TriggerDeviceState
 
 
 class Routine(BaseModel):

@@ -6,11 +6,11 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
-from backend.app.core.database import SessionLocal
-from backend.app.crud.device import crud_device
-from backend.app.services.device_service import device_service
-from backend.app.core.config import settings
-from backend.app.utils.logger import logger
+from app.core.database import SessionLocal
+from app.crud.device import crud_device
+from app.services.device_service import device_service
+from app.core.config import settings
+from app.utils.logger import logger
 
 
 class MonitoringService:

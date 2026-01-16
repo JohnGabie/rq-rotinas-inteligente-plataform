@@ -4,8 +4,8 @@ Device Model - Dispositivos IoT (Tuya e SNMP)
 from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
-from backend.app.models.enums import DeviceType, DeviceStatus, DeviceIcon
+from app.models.base import BaseModel
+from app.models.enums import DeviceType, DeviceStatus, DeviceIcon
 
 
 class Device(BaseModel):

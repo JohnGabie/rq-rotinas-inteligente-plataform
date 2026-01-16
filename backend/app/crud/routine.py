@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import datetime
 
-from backend.app.crud.base import CRUDBase
-from backend.app.models.routine import Routine, RoutineAction
-from backend.app.schemas.routine import RoutineCreate, RoutineUpdate, RoutineActionCreate
-from backend.app.models.enums import TriggerType
+from app.crud.base import CRUDBase
+from app.models.routine import Routine, RoutineAction
+from app.schemas.routine import RoutineCreate, RoutineUpdate, RoutineActionCreate
+from app.models.enums import TriggerType
 
 
 class CRUDRoutine(CRUDBase[Routine, RoutineCreate, RoutineUpdate]):

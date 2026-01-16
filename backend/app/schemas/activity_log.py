@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from backend.app.schemas.common import ActivityType
+from app.schemas.common import ActivityType
 
 
 class ActivityLogCreate(BaseModel):

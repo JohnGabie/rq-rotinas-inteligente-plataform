@@ -7,13 +7,13 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import datetime
 
-from backend.app.models.routine import Routine
-from backend.app.models.enums import ActivityType
-from backend.app.crud.routine import crud_routine
-from backend.app.crud.activity_log import crud_activity_log
-from backend.app.services.device_service import device_service
-from backend.app.schemas.activity_log import ActivityLogCreate
-from backend.app.utils.logger import logger
+from app.models.routine import Routine
+from app.models.enums import ActivityType
+from app.crud.routine import crud_routine
+from app.crud.activity_log import crud_activity_log
+from app.services.device_service import device_service
+from app.schemas.activity_log import ActivityLogCreate
+from app.utils.logger import logger
 
 
 class RoutineService:

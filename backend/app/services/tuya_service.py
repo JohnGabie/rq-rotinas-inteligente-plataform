@@ -4,8 +4,8 @@ Baseado no seu protótipo funcional
 """
 from typing import Optional
 from tuya_connector import TuyaOpenAPI
-from backend.app.core.config import settings
-from backend.app.utils.logger import logger
+from app.core.config import settings
+from app.utils.logger import logger
 
 
 class TuyaService:

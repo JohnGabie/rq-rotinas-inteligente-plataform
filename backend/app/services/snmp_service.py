@@ -4,8 +4,8 @@ Baseado no seu protótipo funcional com régua de tomadas
 """
 import subprocess
 from typing import Optional, Dict
-from backend.app.core.config import settings
-from backend.app.utils.logger import logger
+from app.core.config import settings
+from app.utils.logger import logger
 
 
 class SNMPService:

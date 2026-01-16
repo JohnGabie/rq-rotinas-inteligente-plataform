@@ -8,8 +8,8 @@ import os
 # Adicionar pasta raiz ao path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from backend.app.services.tuya_service import tuya_service
-from backend.app.services.snmp_service import snmp_service
+from app.services.tuya_service import tuya_service
+from app.services.snmp_service import snmp_service
 from dotenv import load_dotenv
 
 load_dotenv()

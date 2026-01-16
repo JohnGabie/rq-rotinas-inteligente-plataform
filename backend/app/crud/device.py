@@ -5,10 +5,10 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from backend.app.crud.base import CRUDBase
-from backend.app.models.device import Device
-from backend.app.schemas.device import DeviceCreate, DeviceUpdate
-from backend.app.models.enums import DeviceStatus
+from app.crud.base import CRUDBase
+from app.models.device import Device
+from app.schemas.device import DeviceCreate, DeviceUpdate
+from app.models.enums import DeviceStatus
 
 
 class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):

@@ -5,14 +5,13 @@ Execute: python scripts/create_admin.py
 import sys
 import os
 
-# Adicionar pasta raiz ao path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from app.core.database import SessionLocal
+from app.crud.user import crud_user
+from app.schemas.user import UserCreate
+from app.models.enums import UserRole
+from dotenv import load_dotenv
 
-from backend.app.core.database import SessionLocal
-from backend.app.crud.user import crud_user
-from backend.app.schemas.user import UserCreate
-from backend.app.models.enums import UserRole
-
+load_dotenv()
 
 def create_admin():
     """Cria usuário admin padrão"""
@@ -30,9 +29,9 @@ def create_admin():
 
         # Criar admin
         admin_data = UserCreate(
-            email="joao.g.almeida2@gmail.com",
+            email="joao.g.almeida1@gmail.com",
             name="Joao Gabriel(ADM)",
-            password="print(RotinaIntelige)joa",  # Senha padrão
+            password="joaog123",  # Senha padrão
             role=UserRole.ADMIN
         )
 

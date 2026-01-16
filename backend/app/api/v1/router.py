@@ -2,7 +2,7 @@
 API v1 Router - Agrega todos os routers
 """
 from fastapi import APIRouter
-from backend.app.api.v1 import auth, devices, activities, monitoring, routines
+from app.api.v1 import auth, devices, activities, monitoring, routines
 
 api_router = APIRouter()
 

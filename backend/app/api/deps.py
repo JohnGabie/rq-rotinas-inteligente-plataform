@@ -7,10 +7,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from backend.app.core.database import SessionLocal
-from backend.app.core.security import decode_access_token
-from backend.app.crud.user import crud_user
-from backend.app.models.user import User
+from app.core.database import SessionLocal
+from app.core.security import decode_access_token
+from app.crud.user import crud_user
+from app.models.user import User
 
 # Security scheme para Swagger UI
 security = HTTPBearer()
@@ -109,7 +109,7 @@ async def get_current_active_admin(
     Raises:
         HTTPException 403: Usuário não é admin
     """
-    from backend.app.models.enums import UserRole
+    from app.models.enums import UserRole
 
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(

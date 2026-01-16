@@ -3,8 +3,8 @@ User Model - Usuários do sistema
 """
 from sqlalchemy import Column, String, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from backend.app.models.base import BaseModel
-from backend.app.models.enums import UserRole
+from app.models.base import BaseModel
+from app.models.enums import UserRole
 
 
 class User(BaseModel):
