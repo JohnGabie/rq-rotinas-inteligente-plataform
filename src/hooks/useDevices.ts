@@ -5,11 +5,10 @@ import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
-import { apiDeviceToDevice, deviceToApiDevice } from '@/lib/api/mockResponses';
+import { apiDeviceToDevice, deviceToApiDevice } from '@/lib/api/converters';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiDevice, DeviceToggleResponse, DeviceToggleAllResponse } from '@/lib/api/types';
-import { USE_MOCK_API } from '@/lib/api/mode';
 
 const STORAGE_KEY = 'rotina-inteligente-devices';
 
@@ -19,23 +18,20 @@ export function useDevices() {
   const { addLog } = useActivityLog();
   const { sendNotification } = useNotifications();
 
-  // Query to fetch devices
-  const { data: devices = localDevices, isLoading, error, refetch } = useQuery({
+  // Query to fetch devices from API
+  const { data: devices = [], isLoading, error, refetch } = useQuery({
     queryKey: ['devices'],
     queryFn: async (): Promise<Device[]> => {
-      if (USE_MOCK_API) {
-        return localDevices;
-      }
       const response = await apiClient.get<ApiDevice[]>(API_ENDPOINTS.DEVICES);
       if (response.success && response.data) {
         const devicesData = response.data.map(apiDeviceToDevice);
-        setLocalDevices(devicesData); // Cache locally
+        setLocalDevices(devicesData); // Cache locally for offline fallback
         return devicesData;
       }
       throw new Error(response.error || 'Erro ao carregar dispositivos');
     },
-    staleTime: USE_MOCK_API ? Infinity : 30000, // 30 seconds for API
-    refetchOnWindowFocus: !USE_MOCK_API,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Mutation for toggling a single device
@@ -50,26 +46,20 @@ export function useDevices() {
 
       const newState = !device.isOn;
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.post<DeviceToggleResponse>(
-          API_ENDPOINTS.DEVICE_TOGGLE(id),
-          { state: newState }
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao alternar dispositivo');
-        }
+      const response = await apiClient.post<DeviceToggleResponse>(
+        API_ENDPOINTS.DEVICE_TOGGLE(id),
+        { state: newState }
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao alternar dispositivo');
       }
 
       return { device, newState };
     },
     onMutate: async (id: string) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['devices'] });
-
-      // Snapshot the previous value
       const previousDevices = queryClient.getQueryData<Device[]>(['devices']);
 
-      // Optimistically update
       const device = devices.find(d => d.id === id);
       if (device && device.status !== 'offline') {
         queryClient.setQueryData<Device[]>(['devices'], (old) =>
@@ -101,7 +91,6 @@ export function useDevices() {
       });
     },
     onError: (error: Error, id, context) => {
-      // Rollback on error
       if (context?.previousDevices) {
         queryClient.setQueryData(['devices'], context.previousDevices);
         setLocalDevices(context.previousDevices);
@@ -121,25 +110,18 @@ export function useDevices() {
   // Mutation for toggling all devices
   const toggleAllMutation = useMutation({
     mutationFn: async (turnOn: boolean): Promise<{ onlineCount: number; offlineCount: number; failedDevices?: string[] }> => {
-      const onlineDevices = devices.filter(d => d.status === 'online');
-      const offlineCount = devices.length - onlineDevices.length;
-
-      if (!USE_MOCK_API) {
-        const response = await apiClient.post<DeviceToggleAllResponse>(
-          API_ENDPOINTS.DEVICES_TOGGLE_ALL, 
-          { state: turnOn }
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao alternar dispositivos');
-        }
-        return { 
-          onlineCount: response.data?.toggled_count ?? onlineDevices.length, 
-          offlineCount: response.data?.failed_count ?? offlineCount,
-          failedDevices: response.data?.failed_devices
-        };
+      const response = await apiClient.post<DeviceToggleAllResponse>(
+        API_ENDPOINTS.DEVICES_TOGGLE_ALL, 
+        { state: turnOn }
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao alternar dispositivos');
       }
-
-      return { onlineCount: onlineDevices.length, offlineCount };
+      return { 
+        onlineCount: response.data?.toggled_count ?? 0, 
+        offlineCount: response.data?.failed_count ?? 0,
+        failedDevices: response.data?.failed_devices
+      };
     },
     onMutate: async (turnOn: boolean) => {
       await queryClient.cancelQueries({ queryKey: ['devices'] });
@@ -189,23 +171,12 @@ export function useDevices() {
   // Mutation for adding a device
   const addMutation = useMutation({
     mutationFn: async (device: Omit<Device, 'id'>): Promise<Device> => {
-      if (!USE_MOCK_API) {
-        const apiDevice = deviceToApiDevice({ ...device, id: '' } as Device);
-        const response = await apiClient.post<ApiDevice>(API_ENDPOINTS.DEVICES, apiDevice);
-        if (!response.success || !response.data) {
-          throw new Error(response.error || 'Erro ao adicionar dispositivo');
-        }
-        return apiDeviceToDevice(response.data);
+      const apiDevice = deviceToApiDevice({ ...device, id: '' } as Device);
+      const response = await apiClient.post<ApiDevice>(API_ENDPOINTS.DEVICES, apiDevice);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Erro ao adicionar dispositivo');
       }
-
-      // Mock mode: generate local ID
-      const newDevice: Device = {
-        ...device,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return newDevice;
+      return apiDeviceToDevice(response.data);
     },
     onSuccess: (newDevice) => {
       queryClient.setQueryData<Device[]>(['devices'], (old) => [...(old || []), newDevice]);
@@ -237,14 +208,12 @@ export function useDevices() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Device> }): Promise<{ id: string; updates: Partial<Device>; oldDevice?: Device }> => {
       const oldDevice = devices.find(d => d.id === id);
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.put<ApiDevice>(
-          API_ENDPOINTS.DEVICE_BY_ID(id),
-          { name: updates.name, icon: updates.icon }
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao atualizar dispositivo');
-        }
+      const response = await apiClient.put<ApiDevice>(
+        API_ENDPOINTS.DEVICE_BY_ID(id),
+        { name: updates.name, icon: updates.icon }
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao atualizar dispositivo');
       }
 
       return { id, updates, oldDevice };
@@ -284,11 +253,9 @@ export function useDevices() {
     mutationFn: async (id: string): Promise<{ id: string; device?: Device }> => {
       const device = devices.find(d => d.id === id);
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.delete(API_ENDPOINTS.DEVICE_BY_ID(id));
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao remover dispositivo');
-        }
+      const response = await apiClient.delete(API_ENDPOINTS.DEVICE_BY_ID(id));
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao remover dispositivo');
       }
 
       return { id, device };
@@ -320,7 +287,7 @@ export function useDevices() {
     },
   });
 
-  // Wrapper functions to maintain same API
+  // Wrapper functions
   const toggleDevice = useCallback((id: string) => {
     toggleMutation.mutate(id);
   }, [toggleMutation]);

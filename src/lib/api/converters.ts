@@ -1,75 +1,13 @@
-// API response converters and emergency mock login
-// These convert between API (snake_case) and frontend (camelCase) formats
+/**
+ * API <-> Frontend Format Converters
+ * Convert between API (snake_case) and frontend (camelCase) formats
+ */
 
-import { ApiDevice, ApiRoutine, ApiRoutineAction, LoginResponse, User } from './types';
+import { ApiDevice, ApiRoutine, ApiRoutineAction } from './types';
 import { Device, Routine, RoutineAction, WeekDay, DeviceIcon } from '@/types/device';
 
-// Simple hash function for mock password validation (emergency fallback only)
-const simpleHash = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
-};
-
-// Mock user database (emergency fallback only)
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'admin@admin.com',
-    name: 'Administrador',
-    passwordHash: simpleHash('admin'),
-    role: 'admin' as const,
-  },
-];
-
-// Mock JWT token generator (emergency fallback only)
-const generateMockToken = (userId: string): string => {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = btoa(JSON.stringify({
-    sub: userId,
-    iat: Date.now(),
-    exp: Date.now() + (24 * 60 * 60 * 1000),
-  }));
-  const signature = btoa('mock-signature');
-  return `${header}.${payload}.${signature}`;
-};
-
-// Emergency mock login - only used when USE_MOCK_API is true
-export const mockLogin = (email: string, password: string): LoginResponse | null => {
-  const user = MOCK_USERS.find(u => u.email === email);
-  
-  if (!user) {
-    return null;
-  }
-  
-  const passwordHash = simpleHash(password);
-  if (passwordHash !== user.passwordHash) {
-    return null;
-  }
-  
-  const mockUser: User = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    is_active: true,
-    role: user.role,
-    created_at: new Date().toISOString(),
-  };
-  
-  return {
-    access_token: generateMockToken(user.id),
-    token_type: 'Bearer',
-    expires_in: 86400,
-    user: mockUser,
-  };
-};
-
 // ============================================
-// API <-> Frontend Format Converters
+// DEVICE CONVERTERS
 // ============================================
 
 // Convert API device format to frontend format
@@ -107,6 +45,10 @@ export const deviceToApiDevice = (device: Device): Partial<ApiDevice> => ({
   snmp_base_oid: device.snmpBaseOid,
   snmp_outlet_number: device.snmpOutletNumber,
 });
+
+// ============================================
+// ROUTINE CONVERTERS
+// ============================================
 
 // Convert API routine action to frontend format
 export const apiRoutineActionToRoutineAction = (apiAction: ApiRoutineAction): RoutineAction => ({

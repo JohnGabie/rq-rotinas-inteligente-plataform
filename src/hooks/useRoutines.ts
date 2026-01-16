@@ -8,8 +8,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiRoutine, RoutineExecuteResponse, RoutineCreateRequest, RoutineUpdateRequest } from '@/lib/api/types';
-import { apiRoutineToRoutine, routineToApiRoutine } from '@/lib/api/mockResponses';
-import { USE_MOCK_API } from '@/lib/api/mode';
+import { apiRoutineToRoutine } from '@/lib/api/converters';
 
 const STORAGE_KEY = 'rotina-inteligente-routines';
 
@@ -19,23 +18,20 @@ export function useRoutines() {
   const { addLog } = useActivityLog();
   const { sendNotification } = useNotifications();
 
-  // Query to fetch routines
-  const { data: routines = localRoutines, isLoading, error, refetch } = useQuery({
+  // Query to fetch routines from API
+  const { data: routines = [], isLoading, error, refetch } = useQuery({
     queryKey: ['routines'],
     queryFn: async (): Promise<Routine[]> => {
-      if (USE_MOCK_API) {
-        return localRoutines;
-      }
       const response = await apiClient.get<ApiRoutine[]>(API_ENDPOINTS.ROUTINES);
       if (response.success && response.data) {
         const routinesData = response.data.map(apiRoutineToRoutine);
-        setLocalRoutines(routinesData); // Cache locally
+        setLocalRoutines(routinesData); // Cache locally for offline fallback
         return routinesData;
       }
       throw new Error(response.error || 'Erro ao carregar rotinas');
     },
-    staleTime: USE_MOCK_API ? Infinity : 30000,
-    refetchOnWindowFocus: !USE_MOCK_API,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   });
 
   // Mutation for toggling routine active state
@@ -46,14 +42,12 @@ export function useRoutines() {
 
       const newState = !routine.isActive;
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.post(
-          API_ENDPOINTS.ROUTINE_TOGGLE(id),
-          { is_active: newState }
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao alternar rotina');
-        }
+      const response = await apiClient.post(
+        API_ENDPOINTS.ROUTINE_TOGGLE(id),
+        { is_active: newState }
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao alternar rotina');
       }
 
       return { routine, newState };
@@ -105,38 +99,27 @@ export function useRoutines() {
   // Mutation for adding a routine
   const addMutation = useMutation({
     mutationFn: async (routine: Omit<Routine, 'id'>): Promise<Routine> => {
-      if (!USE_MOCK_API) {
-        const createRequest: RoutineCreateRequest = {
-          name: routine.name,
-          trigger_type: routine.triggerType,
-          trigger_time: routine.triggerTime,
-          week_days: routine.weekDays,
-          trigger_routine_id: routine.triggerRoutineId,
-          trigger_device_id: routine.triggerDeviceId,
-          trigger_device_state: routine.triggerDeviceState,
-          trigger_cooldown_minutes: routine.triggerCooldownMinutes,
-          actions: routine.actions.map(a => ({
-            device_id: a.deviceId,
-            turn_on: a.turnOn,
-            order: a.order,
-            delay: a.delay,
-          })),
-        };
-        const response = await apiClient.post<ApiRoutine>(API_ENDPOINTS.ROUTINES, createRequest);
-        if (!response.success || !response.data) {
-          throw new Error(response.error || 'Erro ao criar rotina');
-        }
-        return apiRoutineToRoutine(response.data);
-      }
-
-      // Mock mode: generate local ID
-      const newRoutine: Routine = {
-        ...routine,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const createRequest: RoutineCreateRequest = {
+        name: routine.name,
+        trigger_type: routine.triggerType,
+        trigger_time: routine.triggerTime,
+        week_days: routine.weekDays,
+        trigger_routine_id: routine.triggerRoutineId,
+        trigger_device_id: routine.triggerDeviceId,
+        trigger_device_state: routine.triggerDeviceState,
+        trigger_cooldown_minutes: routine.triggerCooldownMinutes,
+        actions: routine.actions.map(a => ({
+          device_id: a.deviceId,
+          turn_on: a.turnOn,
+          order: a.order,
+          delay: a.delay,
+        })),
       };
-      return newRoutine;
+      const response = await apiClient.post<ApiRoutine>(API_ENDPOINTS.ROUTINES, createRequest);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Erro ao criar rotina');
+      }
+      return apiRoutineToRoutine(response.data);
     },
     onSuccess: (newRoutine) => {
       queryClient.setQueryData<Routine[]>(['routines'], (old) => [...(old || []), newRoutine]);
@@ -168,31 +151,29 @@ export function useRoutines() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Routine> }): Promise<{ id: string; updates: Partial<Routine>; oldRoutine?: Routine }> => {
       const oldRoutine = routines.find(r => r.id === id);
 
-      if (!USE_MOCK_API) {
-        const updateRequest: RoutineUpdateRequest = {};
-        if (updates.name !== undefined) updateRequest.name = updates.name;
-        if (updates.triggerTime !== undefined) updateRequest.trigger_time = updates.triggerTime;
-        if (updates.weekDays !== undefined) updateRequest.week_days = updates.weekDays;
-        if (updates.triggerRoutineId !== undefined) updateRequest.trigger_routine_id = updates.triggerRoutineId;
-        if (updates.triggerDeviceId !== undefined) updateRequest.trigger_device_id = updates.triggerDeviceId;
-        if (updates.triggerDeviceState !== undefined) updateRequest.trigger_device_state = updates.triggerDeviceState;
-        if (updates.triggerCooldownMinutes !== undefined) updateRequest.trigger_cooldown_minutes = updates.triggerCooldownMinutes;
-        if (updates.actions !== undefined) {
-          updateRequest.actions = updates.actions.map(a => ({
-            device_id: a.deviceId,
-            turn_on: a.turnOn,
-            order: a.order,
-            delay: a.delay,
-          }));
-        }
+      const updateRequest: RoutineUpdateRequest = {};
+      if (updates.name !== undefined) updateRequest.name = updates.name;
+      if (updates.triggerTime !== undefined) updateRequest.trigger_time = updates.triggerTime;
+      if (updates.weekDays !== undefined) updateRequest.week_days = updates.weekDays;
+      if (updates.triggerRoutineId !== undefined) updateRequest.trigger_routine_id = updates.triggerRoutineId;
+      if (updates.triggerDeviceId !== undefined) updateRequest.trigger_device_id = updates.triggerDeviceId;
+      if (updates.triggerDeviceState !== undefined) updateRequest.trigger_device_state = updates.triggerDeviceState;
+      if (updates.triggerCooldownMinutes !== undefined) updateRequest.trigger_cooldown_minutes = updates.triggerCooldownMinutes;
+      if (updates.actions !== undefined) {
+        updateRequest.actions = updates.actions.map(a => ({
+          device_id: a.deviceId,
+          turn_on: a.turnOn,
+          order: a.order,
+          delay: a.delay,
+        }));
+      }
 
-        const response = await apiClient.put<ApiRoutine>(
-          API_ENDPOINTS.ROUTINE_BY_ID(id),
-          updateRequest
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao atualizar rotina');
-        }
+      const response = await apiClient.put<ApiRoutine>(
+        API_ENDPOINTS.ROUTINE_BY_ID(id),
+        updateRequest
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao atualizar rotina');
       }
 
       return { id, updates, oldRoutine };
@@ -232,11 +213,9 @@ export function useRoutines() {
     mutationFn: async (id: string): Promise<{ id: string; routine?: Routine }> => {
       const routine = routines.find(r => r.id === id);
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.delete(API_ENDPOINTS.ROUTINE_BY_ID(id));
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao remover rotina');
-        }
+      const response = await apiClient.delete(API_ENDPOINTS.ROUTINE_BY_ID(id));
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao remover rotina');
       }
 
       return { id, routine };
@@ -274,33 +253,13 @@ export function useRoutines() {
       const routine = routines.find(r => r.id === id);
       if (!routine) throw new Error('Rotina não encontrada');
 
-      if (!USE_MOCK_API) {
-        const response = await apiClient.post<RoutineExecuteResponse>(
-          API_ENDPOINTS.ROUTINE_EXECUTE(id)
-        );
-        if (!response.success) {
-          throw new Error(response.error || 'Erro ao executar rotina');
-        }
-        return { routine, result: response.data };
+      const response = await apiClient.post<RoutineExecuteResponse>(
+        API_ENDPOINTS.ROUTINE_EXECUTE(id)
+      );
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao executar rotina');
       }
-
-      // Simulate execution for mock mode
-      const sortedActions = [...routine.actions].sort((a, b) => a.order - b.order);
-      const isSimultaneous = sortedActions.every(a => a.delay === 0);
-
-      console.log(`[Mock] Executing routine "${routine.name}" with ${sortedActions.length} actions (${isSimultaneous ? 'simultaneous' : 'sequential'})`);
-
-      if (!isSimultaneous) {
-        for (let i = 0; i < sortedActions.length; i++) {
-          const action = sortedActions[i];
-          if (i > 0 && sortedActions[i - 1].delay > 0) {
-            await new Promise(resolve => setTimeout(resolve, sortedActions[i - 1].delay * 1000));
-          }
-          console.log(`[Mock] Action ${i + 1}: Device ${action.deviceId} -> ${action.turnOn ? 'ON' : 'OFF'}`);
-        }
-      }
-
-      return { routine };
+      return { routine, result: response.data };
     },
     onMutate: (id: string) => {
       const routine = routines.find(r => r.id === id);
@@ -350,7 +309,7 @@ export function useRoutines() {
     },
   });
 
-  // Wrapper functions to maintain same API
+  // Wrapper functions
   const toggleRoutine = useCallback((id: string) => {
     toggleMutation.mutate(id);
   }, [toggleMutation]);
