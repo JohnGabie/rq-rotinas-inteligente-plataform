@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    snmp \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements

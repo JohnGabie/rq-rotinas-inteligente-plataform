@@ -31,6 +31,7 @@ const Index = () => {
   const {
     routines,
     toggleRoutine,
+    isToggling,
     addRoutine,
     updateRoutine,
     deleteRoutine,
@@ -316,6 +317,7 @@ const Index = () => {
                     onToggle={toggleRoutine}
                     onEdit={handleEditRoutine}
                     onExecute={executeRoutine}
+                    isToggling={isToggling}
                   />
                 </motion.div>
               ))}
@@ -368,6 +370,7 @@ const Index = () => {
         onSave={addDevice}
         onUpdate={updateDevice}
         onDelete={deleteDevice}
+        existingDevices={devices}
       />
 
       <RoutineWizard

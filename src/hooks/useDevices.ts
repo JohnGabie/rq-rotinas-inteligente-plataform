@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useNotifications } from '@/hooks/useNotifications';
-import { apiDeviceToDevice, deviceToApiDevice } from '@/lib/api/converters';
+import { apiDeviceToDevice, deviceToCreateRequest, deviceToUpdateRequest } from '@/lib/api/converters';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiDevice, DeviceToggleResponse, DeviceToggleAllResponse } from '@/lib/api/types';
@@ -36,15 +36,13 @@ export function useDevices() {
 
   // Mutation for toggling a single device
   const toggleMutation = useMutation({
-    mutationFn: async (id: string): Promise<{ device: Device; newState: boolean }> => {
+    mutationFn: async ({ id, newState }: { id: string; newState: boolean }): Promise<{ device: Device; newState: boolean }> => {
       const device = devices.find(d => d.id === id);
       if (!device) throw new Error('Dispositivo não encontrado');
-      
+
       if (device.status === 'offline') {
         throw new Error('Dispositivo desconectado');
       }
-
-      const newState = !device.isOn;
 
       const response = await apiClient.post<DeviceToggleResponse>(
         API_ENDPOINTS.DEVICE_TOGGLE(id),
@@ -56,17 +54,17 @@ export function useDevices() {
 
       return { device, newState };
     },
-    onMutate: async (id: string) => {
+    onMutate: async ({ id, newState }) => {
       await queryClient.cancelQueries({ queryKey: ['devices'] });
       const previousDevices = queryClient.getQueryData<Device[]>(['devices']);
 
-      const device = devices.find(d => d.id === id);
+      const device = previousDevices?.find(d => d.id === id);
       if (device && device.status !== 'offline') {
         queryClient.setQueryData<Device[]>(['devices'], (old) =>
-          old?.map(d => d.id === id ? { ...d, isOn: !d.isOn } : d)
+          old?.map(d => d.id === id ? { ...d, isOn: newState } : d)
         );
         setLocalDevices(prev =>
-          prev.map(d => d.id === id ? { ...d, isOn: !d.isOn } : d)
+          prev.map(d => d.id === id ? { ...d, isOn: newState } : d)
         );
       }
 
@@ -90,7 +88,7 @@ export function useDevices() {
         description: `${device.name} foi ${newState ? 'ligado' : 'desligado'} com sucesso.`,
       });
     },
-    onError: (error: Error, id, context) => {
+    onError: (error: Error, { id }, context) => {
       if (context?.previousDevices) {
         queryClient.setQueryData(['devices'], context.previousDevices);
         setLocalDevices(context.previousDevices);
@@ -171,8 +169,8 @@ export function useDevices() {
   // Mutation for adding a device
   const addMutation = useMutation({
     mutationFn: async (device: Omit<Device, 'id'>): Promise<Device> => {
-      const apiDevice = deviceToApiDevice({ ...device, id: '' } as Device);
-      const response = await apiClient.post<ApiDevice>(API_ENDPOINTS.DEVICES, apiDevice);
+      const createRequest = deviceToCreateRequest(device);
+      const response = await apiClient.post<ApiDevice>(API_ENDPOINTS.DEVICES, createRequest);
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Erro ao adicionar dispositivo');
       }
@@ -208,9 +206,10 @@ export function useDevices() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Device> }): Promise<{ id: string; updates: Partial<Device>; oldDevice?: Device }> => {
       const oldDevice = devices.find(d => d.id === id);
 
+      const updateRequest = deviceToUpdateRequest(updates);
       const response = await apiClient.put<ApiDevice>(
         API_ENDPOINTS.DEVICE_BY_ID(id),
-        { name: updates.name, icon: updates.icon }
+        updateRequest
       );
       if (!response.success) {
         throw new Error(response.error || 'Erro ao atualizar dispositivo');
@@ -289,8 +288,12 @@ export function useDevices() {
 
   // Wrapper functions
   const toggleDevice = useCallback((id: string) => {
-    toggleMutation.mutate(id);
-  }, [toggleMutation]);
+    const device = devices.find(d => d.id === id);
+    if (device) {
+      const newState = !device.isOn;
+      toggleMutation.mutate({ id, newState });
+    }
+  }, [devices, toggleMutation]);
 
   const toggleAllDevices = useCallback((turnOn: boolean) => {
     toggleAllMutation.mutate(turnOn);

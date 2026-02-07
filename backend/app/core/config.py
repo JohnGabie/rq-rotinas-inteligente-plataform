@@ -1,10 +1,30 @@
 """
 Configurações da aplicação usando Pydantic Settings
-Carrega variáveis do arquivo .env automaticamente via caminho absoluto
+Carrega variáveis do arquivo .env automaticamente
+Prioridade: variáveis de ambiente > arquivo .env
 """
 import os
-from typing import List
+from pathlib import Path
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def find_env_file() -> Optional[str]:
+    """
+    Procura o arquivo .env em locais comuns.
+    Retorna None se não encontrar (usa apenas variáveis de ambiente)
+    """
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent / ".env",  # /app/../.env -> raiz do projeto
+        Path("/app/.env"),
+        Path(".env"),
+        Path("../.env"),
+    ]
+    for path in possible_paths:
+        if path.exists():
+            return str(path)
+    return None
+
 
 class Settings(BaseSettings):
     """Settings da aplicação"""
@@ -15,11 +35,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database
-    DATABASE_URL: str
+    # Database - valor padrão explícito como fallback
+    DATABASE_URL: str = "postgresql://rotina_user:rotina_password@localhost:5432/rotina_inteligente_db"
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
@@ -49,11 +69,13 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
-    # --- CONFIGURAÇÃO DE CARREGAMENTO DO .ENV ---
-    # Isso garante que ele ache o .env na pasta 'backend/',
-    # não importa de onde você rode o comando (terminal raiz ou PyCharm)
+    # Timezone
+    TIMEZONE: str = "America/Sao_Paulo"
+
+    # --- CONFIGURAÇÃO ---
+    # Variáveis de ambiente do Docker têm prioridade sobre arquivo .env
     model_config = SettingsConfigDict(
-        env_file="../.env",  # <-- Coloque o caminho correto aqui. Ex: "../.env" ou "app/.env"
+        env_file=find_env_file(),
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -61,3 +83,7 @@ class Settings(BaseSettings):
 
 # Instância global de settings
 settings = Settings()
+
+# Log para debug
+import logging
+logging.getLogger(__name__).info(f"DATABASE_URL configurada: {settings.DATABASE_URL[:50]}...")

@@ -98,8 +98,13 @@ class CRUDRoutine(CRUDBase[Routine, RoutineCreate, RoutineUpdate]):
             # Criar novas ações
             actions_data = update_data.pop('actions')
             for action_data in actions_data:
+                # action_data pode ser dict ou objeto Pydantic
+                if hasattr(action_data, 'model_dump'):
+                    action_dict = action_data.model_dump()
+                else:
+                    action_dict = action_data
                 action = RoutineAction(
-                    **action_data.model_dump(),
+                    **action_dict,
                     routine_id=routine.id
                 )
                 db.add(action)
@@ -120,7 +125,10 @@ class CRUDRoutine(CRUDBase[Routine, RoutineCreate, RoutineUpdate]):
             routine_id: UUID,
             is_active: bool
     ) -> Optional[Routine]:
-        """Ativar/desativar rotina"""
+        """
+        Ativar/desativar rotina
+        NOTA: A transação é gerenciada pelo endpoint, não aqui
+        """
         routine = db.query(Routine).filter(Routine.id == routine_id).first()
 
         if routine:

@@ -5,8 +5,17 @@ Todos os models herdam desta classe
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import uuid
 from app.core.database import Base
+
+# Timezone de São Paulo
+SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def now_sao_paulo():
+    """Retorna datetime atual no timezone de São Paulo"""
+    return datetime.now(SAO_PAULO_TZ)
 
 
 class BaseModel(Base):
@@ -27,14 +36,14 @@ class BaseModel(Base):
 
     created_at = Column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=now_sao_paulo,
         nullable=False
     )
 
     updated_at = Column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=now_sao_paulo,
+        onupdate=now_sao_paulo,
         nullable=False
     )
 

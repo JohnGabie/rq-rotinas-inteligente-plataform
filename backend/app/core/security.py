@@ -3,9 +3,18 @@ Security utilities - JWT, password hashing, authentication
 """
 from datetime import datetime, timedelta
 from typing import Optional
+from zoneinfo import ZoneInfo
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.core.config import settings
+
+# Timezone de São Paulo
+SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def now_sao_paulo():
+    """Retorna datetime atual no timezone de São Paulo"""
+    return datetime.now(SAO_PAULO_TZ)
 
 # Configurar bcrypt para hash de senhas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -64,9 +73,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now_sao_paulo() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = now_sao_paulo() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
 

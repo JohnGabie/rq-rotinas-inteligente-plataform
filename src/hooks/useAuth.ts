@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AuthUser, LoginResponse, User } from '@/lib/api/types';
 import { API_ENDPOINTS } from '@/lib/api/config';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, ApiError } from '@/lib/api/client';
 
 const STORAGE_KEY = 'rotina-inteligente-session';
 
@@ -83,13 +83,39 @@ export function useAuth() {
         setIsLoading(false);
         return true;
       } else {
-        setError(response.message || response.error || 'Email ou senha inválidos');
+        // API respondeu mas com success=false
+        const errorMsg = response.message || response.error;
+        setError(errorMsg || 'Credenciais inválidas');
         setIsLoading(false);
         return false;
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Erro de conexão com o servidor.');
+
+      if (err instanceof ApiError) {
+        // Mensagens específicas por status HTTP
+        switch (err.status) {
+          case 401:
+            setError('Email ou senha incorretos');
+            break;
+          case 403:
+            setError('Usuário inativo. Entre em contato com o administrador.');
+            break;
+          case 422:
+            setError('Dados inválidos. Verifique o email e senha.');
+            break;
+          case 500:
+            setError('Erro interno do servidor. Tente novamente.');
+            break;
+          default:
+            setError(err.message || 'Erro ao fazer login');
+        }
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Servidor indisponível. Verifique sua conexão.');
+      } else {
+        setError('Erro inesperado. Tente novamente.');
+      }
+
       setIsLoading(false);
       return false;
     }

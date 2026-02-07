@@ -17,6 +17,7 @@ from app.models.user import User
 from app.models.device import Device
 from app.models.routine import Routine, RoutineAction
 from app.models.activity_log import ActivityLog
+from app.models.device_session import DeviceSession, TriggerSource
 
 __all__ = [
     "BaseModel",
@@ -33,4 +34,6 @@ __all__ = [
     "Routine",
     "RoutineAction",
     "ActivityLog",
+    "DeviceSession",
+    "TriggerSource",
 ]

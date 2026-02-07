@@ -33,6 +33,8 @@ const snmpDeviceSchema = baseDeviceSchema.extend({
   ip: z.string().ip({ message: 'Endereço IP inválido' }),
   communityString: z.string().min(1, 'Community é obrigatório').max(50, 'Community deve ter no máximo 50 caracteres'),
   port: z.number().int().min(1, 'Porta deve ser entre 1 e 65535').max(65535, 'Porta deve ser entre 1 e 65535'),
+  snmpBaseOid: z.string().min(1, 'OID Base é obrigatório').max(255, 'OID deve ter no máximo 255 caracteres'),
+  snmpOutletNumber: z.number().int().min(1, 'Tomada deve ser entre 1 e 10').max(10, 'Tomada deve ser entre 1 e 10'),
 });
 
 interface DeviceFormDialogProps {
@@ -42,6 +44,7 @@ interface DeviceFormDialogProps {
   onSave: (device: Omit<Device, 'id'>) => void;
   onUpdate?: (id: string, updates: Partial<Device>) => void;
   onDelete?: (id: string) => void;
+  existingDevices?: Device[];
 }
 
 export function DeviceFormDialog({
@@ -51,6 +54,7 @@ export function DeviceFormDialog({
   onSave,
   onUpdate,
   onDelete,
+  existingDevices,
 }: DeviceFormDialogProps) {
   const isEditing = !!device;
 
@@ -60,8 +64,10 @@ export function DeviceFormDialog({
   const [deviceId, setDeviceId] = useState('');
   const [localKey, setLocalKey] = useState('');
   const [ip, setIp] = useState('');
-  const [communityString, setCommunityString] = useState('public');
+  const [communityString, setCommunityString] = useState('private');
   const [port, setPort] = useState('161');
+  const [snmpBaseOid, setSnmpBaseOid] = useState('');
+  const [snmpOutletNumber, setSnmpOutletNumber] = useState('1');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -72,8 +78,10 @@ export function DeviceFormDialog({
       setDeviceId(device.deviceId || '');
       setLocalKey(device.localKey || '');
       setIp(device.ip || '');
-      setCommunityString(device.communityString || 'public');
+      setCommunityString(device.communityString || 'private');
       setPort(device.port?.toString() || '161');
+      setSnmpBaseOid(device.snmpBaseOid || '');
+      setSnmpOutletNumber(device.snmpOutletNumber?.toString() || '1');
     } else {
       setName('');
       setType('tuya');
@@ -81,8 +89,10 @@ export function DeviceFormDialog({
       setDeviceId('');
       setLocalKey('');
       setIp('');
-      setCommunityString('public');
+      setCommunityString('private');
       setPort('161');
+      setSnmpBaseOid('');
+      setSnmpOutletNumber('1');
     }
   }, [device, open]);
 
@@ -96,8 +106,6 @@ export function DeviceFormDialog({
       name,
       type,
       icon,
-      isOn: device?.isOn ?? false,
-      status: device?.status ?? ('online' as const),
     };
 
     try {
@@ -115,12 +123,36 @@ export function DeviceFormDialog({
         }
       } else {
         const portNumber = parseInt(port, 10);
-        snmpDeviceSchema.parse({ name, ip, communityString, port: portNumber });
+        const outletNumber = parseInt(snmpOutletNumber, 10);
+        snmpDeviceSchema.parse({ name, ip, communityString, port: portNumber, snmpBaseOid, snmpOutletNumber: outletNumber });
+
+        // Validação de duplicatas para SNMP
+        const duplicate = existingDevices?.find(d =>
+          d.type === 'snmp' &&
+          d.snmpBaseOid === snmpBaseOid &&
+          d.snmpOutletNumber === outletNumber &&
+          (!isEditing || d.id !== device?.id)
+        );
+
+        if (duplicate) {
+          setValidationErrors({
+            snmpOutletNumber: `Tomada ${outletNumber} já existe (${duplicate.name})`
+          });
+          toast({
+            title: 'Tomada já cadastrada',
+            description: `Já existe um dispositivo usando esta tomada: ${duplicate.name}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+
         const newDevice: Omit<Device, 'id'> = {
           ...baseDevice,
           ip,
           communityString,
           port: portNumber,
+          snmpBaseOid,
+          snmpOutletNumber: outletNumber,
         };
         if (isEditing && onUpdate) {
           onUpdate(device.id, newDevice);
@@ -302,26 +334,63 @@ export function DeviceFormDialog({
                   exit={{ opacity: 0, y: -10 }}
                   className="space-y-3 sm:space-y-4"
                 >
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="ip" className="text-xs sm:text-sm">Endereço IP</Label>
+                      <Input
+                        id="ip"
+                        placeholder="192.168.1.100"
+                        value={ip}
+                        onChange={(e) => setIp(e.target.value)}
+                        autoComplete="off"
+                        className={cn("text-sm sm:text-base", validationErrors.ip && "border-destructive")}
+                      />
+                      {validationErrors.ip && (
+                        <p className="text-xs text-destructive">{validationErrors.ip}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label htmlFor="outletNumber" className="text-xs sm:text-sm">Nº Tomada</Label>
+                      <Input
+                        id="outletNumber"
+                        placeholder="1"
+                        value={snmpOutletNumber}
+                        onChange={(e) => setSnmpOutletNumber(e.target.value)}
+                        type="number"
+                        min={1}
+                        max={10}
+                        autoComplete="off"
+                        className={cn("text-sm sm:text-base", validationErrors.snmpOutletNumber && "border-destructive")}
+                      />
+                      {validationErrors.snmpOutletNumber && (
+                        <p className="text-xs text-destructive">{validationErrors.snmpOutletNumber}</p>
+                      )}
+                    </div>
+                  </div>
                   <div className="space-y-1.5 sm:space-y-2">
-                    <Label htmlFor="ip" className="text-xs sm:text-sm">Endereço IP</Label>
+                    <Label htmlFor="baseOid" className="text-xs sm:text-sm">OID Base</Label>
                     <Input
-                      id="ip"
-                      placeholder="192.168.1.100"
-                      value={ip}
-                      onChange={(e) => setIp(e.target.value)}
+                      id="baseOid"
+                      placeholder=".1.3.6.1.4.1.17095.1.3."
+                      value={snmpBaseOid}
+                      onChange={(e) => setSnmpBaseOid(e.target.value)}
+                      maxLength={255}
                       autoComplete="off"
-                      className={cn("text-sm sm:text-base", validationErrors.ip && "border-destructive")}
+                      className={cn("text-sm sm:text-base", validationErrors.snmpBaseOid && "border-destructive")}
                     />
-                    {validationErrors.ip && (
-                      <p className="text-xs text-destructive">{validationErrors.ip}</p>
+                    {validationErrors.snmpBaseOid && (
+                      <p className="text-xs text-destructive">{validationErrors.snmpBaseOid}</p>
                     )}
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      Ex: .1.3.6.1.4.1.17095.1.3. (termina com ponto)
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label htmlFor="community" className="text-xs sm:text-sm">Community</Label>
                       <Input
                         id="community"
-                        placeholder="public"
+                        placeholder="private"
                         value={communityString}
                         onChange={(e) => setCommunityString(e.target.value)}
                         maxLength={50}

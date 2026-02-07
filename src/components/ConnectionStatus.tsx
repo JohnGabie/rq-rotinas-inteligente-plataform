@@ -1,5 +1,4 @@
 import { Wifi, WifiOff, Loader2 } from 'lucide-react';
-import { USE_MOCK_API } from '@/lib/api/mode';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
@@ -14,24 +13,6 @@ interface ConnectionStatusProps {
 }
 
 export function ConnectionStatus({ isLoading, isError }: ConnectionStatusProps) {
-  if (USE_MOCK_API) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="outline" className="gap-1 text-xs">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              Mock
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Usando dados locais (modo desenvolvimento)</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   if (isLoading) {
     return (
       <TooltipProvider>

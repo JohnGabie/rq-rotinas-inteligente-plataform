@@ -122,9 +122,19 @@ export function RoutineWizard({
   };
 
   const handleSubmit = () => {
+    // Determinar isActive baseado na mudança de tipo
+    let newIsActive = routine?.isActive ?? (triggerType !== 'manual');
+
+    // Se editando e mudando tipo de gatilho de MANUAL para agendado, ativar automaticamente
+    if (routine && routine.triggerType !== triggerType) {
+      if (triggerType !== 'manual' && routine.triggerType === 'manual') {
+        newIsActive = true;
+      }
+    }
+
     const newRoutine: Omit<Routine, 'id'> = {
       name,
-      isActive: routine?.isActive ?? (triggerType !== 'manual'),
+      isActive: newIsActive,
       triggerType,
       triggerTime: triggerType === 'time' ? triggerTime : undefined,
       weekDays: triggerType === 'time' ? weekDays : [],

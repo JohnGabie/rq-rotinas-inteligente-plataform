@@ -1,7 +1,7 @@
 """
 Routine Schemas - DTOs para rotinas automatizadas
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from uuid import UUID
 from datetime import datetime, time
 from typing import Optional, List
@@ -92,6 +92,8 @@ class RoutineCreate(RoutineBase):
 class RoutineUpdate(BaseModel):
     """Schema para atualizar rotina"""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
+    is_active: Optional[bool] = None
+    trigger_type: Optional[TriggerType] = None
     trigger_time: Optional[time] = None
     week_days: Optional[List[WeekDay]] = None
     trigger_routine_id: Optional[UUID] = None
@@ -99,6 +101,23 @@ class RoutineUpdate(BaseModel):
     trigger_device_state: Optional[TriggerDeviceState] = None
     trigger_cooldown_minutes: Optional[int] = Field(None, ge=0, le=1440)
     actions: Optional[List[RoutineActionCreate]] = None
+
+    @model_validator(mode='after')
+    def validate_trigger_fields(self) -> 'RoutineUpdate':
+        """Valida campos obrigatórios quando trigger_type é alterado"""
+        if self.trigger_type is not None:
+            if self.trigger_type == TriggerType.TIME:
+                if self.trigger_time is None:
+                    raise ValueError("trigger_time é obrigatório ao mudar para gatilho de horário")
+                if self.week_days is None or len(self.week_days) == 0:
+                    raise ValueError("week_days é obrigatório ao mudar para gatilho de horário")
+            elif self.trigger_type == TriggerType.ROUTINE_COMPLETE:
+                if self.trigger_routine_id is None:
+                    raise ValueError("trigger_routine_id é obrigatório ao mudar para gatilho de rotina")
+            elif self.trigger_type == TriggerType.DEVICE_STATE:
+                if self.trigger_device_id is None:
+                    raise ValueError("trigger_device_id é obrigatório ao mudar para gatilho de dispositivo")
+        return self
 
 
 class RoutineToggle(BaseModel):

@@ -3,7 +3,7 @@
  * Convert between API (snake_case) and frontend (camelCase) formats
  */
 
-import { ApiDevice, ApiRoutine, ApiRoutineAction } from './types';
+import { ApiDevice, ApiRoutine, ApiRoutineAction, DeviceCreateRequest } from './types';
 import { Device, Routine, RoutineAction, WeekDay, DeviceIcon } from '@/types/device';
 
 // ============================================
@@ -14,10 +14,10 @@ import { Device, Routine, RoutineAction, WeekDay, DeviceIcon } from '@/types/dev
 export const apiDeviceToDevice = (apiDevice: ApiDevice): Device => ({
   id: apiDevice.id,
   name: apiDevice.name,
-  type: apiDevice.type,
+  type: apiDevice.type.toLowerCase() as Device['type'],
   icon: apiDevice.icon as DeviceIcon | undefined,
   isOn: apiDevice.is_on,
-  status: apiDevice.status,
+  status: apiDevice.status.toLowerCase() as Device['status'],
   deviceId: apiDevice.device_id,
   localKey: apiDevice.local_key,
   ip: apiDevice.ip,
@@ -29,7 +29,7 @@ export const apiDeviceToDevice = (apiDevice: ApiDevice): Device => ({
   updatedAt: apiDevice.updated_at,
 });
 
-// Convert frontend device format to API format
+// Convert frontend device format to API format (for updates)
 export const deviceToApiDevice = (device: Device): Partial<ApiDevice> => ({
   id: device.id,
   name: device.name,
@@ -45,6 +45,53 @@ export const deviceToApiDevice = (device: Device): Partial<ApiDevice> => ({
   snmp_base_oid: device.snmpBaseOid,
   snmp_outlet_number: device.snmpOutletNumber,
 });
+
+// Convert frontend device format to API update request (only sends defined fields)
+export const deviceToUpdateRequest = (device: Partial<Device>): Record<string, unknown> => {
+  const request: Record<string, unknown> = {};
+
+  if (device.name !== undefined) request.name = device.name;
+  if (device.icon !== undefined) request.icon = device.icon;
+
+  // Campos Tuya
+  if (device.deviceId !== undefined) request.device_id = device.deviceId;
+  if (device.localKey !== undefined) request.local_key = device.localKey;
+
+  // Campos SNMP
+  if (device.ip !== undefined) request.ip = device.ip;
+  if (device.communityString !== undefined) request.community_string = device.communityString;
+  if (device.port !== undefined) request.port = device.port;
+  if (device.snmpBaseOid !== undefined) request.snmp_base_oid = device.snmpBaseOid;
+  if (device.snmpOutletNumber !== undefined) request.snmp_outlet_number = device.snmpOutletNumber;
+
+  return request;
+};
+
+// Convert frontend device format to API create request (only allowed fields)
+export const deviceToCreateRequest = (device: Omit<Device, 'id'>): DeviceCreateRequest => {
+  const base: DeviceCreateRequest = {
+    name: device.name,
+    type: device.type,
+    icon: device.icon,
+  };
+
+  if (device.type === 'tuya') {
+    return {
+      ...base,
+      device_id: device.deviceId,
+      local_key: device.localKey,
+    };
+  }
+
+  return {
+    ...base,
+    ip: device.ip,
+    community_string: device.communityString,
+    port: device.port,
+    snmp_base_oid: device.snmpBaseOid,
+    snmp_outlet_number: device.snmpOutletNumber,
+  };
+};
 
 // ============================================
 // ROUTINE CONVERTERS

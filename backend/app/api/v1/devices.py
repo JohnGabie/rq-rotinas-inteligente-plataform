@@ -1,15 +1,30 @@
 """
 Device Endpoints - CRUD + Toggle + Sync
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 from datetime import datetime
+from zoneinfo import ZoneInfo
+import asyncio
 
 from app.api.deps import get_db, get_current_user
+
+# Timezone de São Paulo
+SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def now_sao_paulo():
+    """Retorna datetime atual no timezone de São Paulo"""
+    return datetime.now(SAO_PAULO_TZ)
 from app.models.user import User
+from app.models.enums import ActivityType
 from app.crud.device import crud_device
+from app.crud.activity_log import crud_activity_log
+from app.crud.device_session import crud_device_session
+from app.schemas.activity_log import ActivityLogCreate
+from app.models.device_session import TriggerSource
 from app.services.device_service import device_service
 from app.schemas.device import (
     DeviceCreate,
@@ -20,6 +35,20 @@ from app.schemas.device import (
     DeviceToggleAllResponse
 )
 from app.schemas.common import ApiResponse
+from app.websocket.manager import manager
+
+
+def broadcast_event_sync(event: str, data: dict):
+    """Helper para broadcast de evento em contexto síncrono."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(manager.broadcast_event(event, data))
+        else:
+            loop.run_until_complete(manager.broadcast_event(event, data))
+    except RuntimeError:
+        # Se não há event loop, criar um novo
+        asyncio.run(manager.broadcast_event(event, data))
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 
@@ -68,7 +97,7 @@ def create_device(
     - Dispositivo SNMP: requer `ip`, `community_string`, `snmp_base_oid`, `snmp_outlet_number`
 
     **Returns:**
-    - Dispositivo criado (status inicial: OFFLINE)
+    - Dispositivo criado com status verificado
     """
     device = crud_device.create_with_user(
         db,
@@ -76,8 +105,30 @@ def create_device(
         user_id=current_user.id
     )
 
-    # Verificar health inicial em background (não bloqueia response)
-    # TODO: Implementar com background task
+    # Verificar saúde imediatamente após criação
+    device_service.check_device_health(db, device_id=device.id)
+
+    # Recarregar device com status atualizado
+    db.refresh(device)
+
+    # Criar log de atividade
+    crud_activity_log.create_with_user(
+        db,
+        obj_in=ActivityLogCreate(
+            type=ActivityType.DEVICE_ADDED,
+            title=f"Dispositivo adicionado: {device.name}",
+            description=f"Tipo: {device.type.value}",
+            device_id=device.id,
+            device_name=device.name
+        ),
+        user_id=current_user.id
+    )
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("device_created", {
+        "device_id": str(device.id),
+        "name": device.name
+    })
 
     return ApiResponse(
         success=True,
@@ -158,6 +209,24 @@ def update_device(
 
     device = crud_device.update(db, db_obj=device, obj_in=device_in)
 
+    # Criar log de atividade
+    crud_activity_log.create_with_user(
+        db,
+        obj_in=ActivityLogCreate(
+            type=ActivityType.DEVICE_UPDATED,
+            title=f"Dispositivo atualizado: {device.name}",
+            device_id=device.id,
+            device_name=device.name
+        ),
+        user_id=current_user.id
+    )
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("device_updated", {
+        "device_id": str(device.id),
+        "name": device.name
+    })
+
     return ApiResponse(
         success=True,
         data=DeviceResponse.model_validate(device),
@@ -195,7 +264,27 @@ def delete_device(
             detail="Dispositivo não encontrado"
         )
 
+    # Guardar nome antes de deletar
+    device_name = device.name
+
+    # Criar log de atividade ANTES de deletar (para manter referência)
+    crud_activity_log.create_with_user(
+        db,
+        obj_in=ActivityLogCreate(
+            type=ActivityType.DEVICE_DELETED,
+            title=f"Dispositivo removido: {device_name}",
+            device_id=device_id,  # Será setado como NULL após delete
+            device_name=device_name
+        ),
+        user_id=current_user.id
+    )
+
     crud_device.delete(db, id=device_id)
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("device_deleted", {
+        "device_id": str(device_id)
+    })
 
     return ApiResponse(
         success=True,
@@ -226,6 +315,19 @@ def toggle_device(
     - 404: Dispositivo não encontrado
     - 503: Dispositivo offline ou erro ao executar
     """
+    # Buscar device para log (antes do toggle)
+    device = crud_device.get_user_device(
+        db,
+        device_id=device_id,
+        user_id=current_user.id
+    )
+
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dispositivo não encontrado"
+        )
+
     success, error_msg = device_service.toggle_device(
         db,
         device_id=device_id,
@@ -239,12 +341,53 @@ def toggle_device(
             detail=error_msg or "Erro ao alternar dispositivo"
         )
 
+    # Gerenciar sessão de dispositivo
+    current_time = now_sao_paulo()
+    if toggle_data.state:
+        # Ligando: iniciar nova sessão
+        crud_device_session.start_session(
+            db,
+            device_id=device.id,
+            user_id=current_user.id,
+            device_name=device.name,
+            started_at=current_time,
+            trigger_source=TriggerSource.MANUAL
+        )
+    else:
+        # Desligando: finalizar sessão ativa
+        crud_device_session.end_session(
+            db,
+            device_id=device.id,
+            ended_at=current_time
+        )
+
+    # Criar log de atividade
+    activity_type = ActivityType.DEVICE_ON if toggle_data.state else ActivityType.DEVICE_OFF
+    action_text = "ligado" if toggle_data.state else "desligado"
+    crud_activity_log.create_with_user(
+        db,
+        obj_in=ActivityLogCreate(
+            type=activity_type,
+            title=f"{device.name} {action_text}",
+            description="Ação manual",
+            device_id=device.id,
+            device_name=device.name
+        ),
+        user_id=current_user.id
+    )
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("device_toggled", {
+        "device_id": str(device_id),
+        "is_on": toggle_data.state
+    })
+
     return ApiResponse(
         success=True,
         data=DeviceToggleResponse(
             device_id=device_id,
             new_state=toggle_data.state,
-            executed_at=datetime.utcnow()
+            executed_at=now_sao_paulo()
         )
     )
 
@@ -268,6 +411,18 @@ def toggle_all_devices(
         db,
         user_id=current_user.id,
         state=toggle_data.state
+    )
+
+    # Criar log de atividade para Master Switch
+    action_text = "ligados" if toggle_data.state else "desligados"
+    crud_activity_log.create_with_user(
+        db,
+        obj_in=ActivityLogCreate(
+            type=ActivityType.MASTER_SWITCH,
+            title=f"Master Switch: todos {action_text}",
+            description=f"{toggled} dispositivo(s) alternado(s), {failed} falha(s)"
+        ),
+        user_id=current_user.id
     )
 
     return ApiResponse(

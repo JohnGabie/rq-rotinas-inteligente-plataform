@@ -9,6 +9,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-rotina_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rotina_password}
       POSTGRES_DB: ${POSTGRES_DB:-rotina_inteligente_db}
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
     ports:
       - "5432:5432"
     volumes:
@@ -25,21 +27,23 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     container_name: rotina_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./backend:/app
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-rotina_user}:${POSTGRES_PASSWORD:-rotina_password}@postgres:5432/${POSTGRES_DB:-rotina_inteligente_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rotina_user}:${POSTGRES_PASSWORD:-rotina_password}@localhost:5432/${POSTGRES_DB:-rotina_inteligente_db}
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       TUYA_API_KEY: ${TUYA_API_KEY:-}
       TUYA_API_SECRET: ${TUYA_API_SECRET:-}
       ENVIRONMENT: ${ENVIRONMENT:-production}
-    ports:
-      - "8000:8000"
+      TZ: America/Sao_Paulo
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - rotina_network
 
   frontend:
     build:
@@ -49,10 +53,12 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+    extra_hosts:
+      - "backend:host-gateway"
+    environment:
+      TZ: America/Sao_Paulo
     depends_on:
       - backend
-    networks:
-      - rotina_network
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -61,6 +67,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@rotina.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      TZ: America/Sao_Paulo
     ports:
       - "5050:80"
     depends_on:

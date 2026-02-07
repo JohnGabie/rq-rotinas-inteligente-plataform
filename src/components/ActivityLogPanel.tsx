@@ -1,18 +1,20 @@
+import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  History, 
-  Power, 
-  PowerOff, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Play, 
+import {
+  History,
+  Power,
+  PowerOff,
+  Plus,
+  Pencil,
+  Trash2,
+  Play,
   Calendar,
   Clock,
   Zap,
-  X
+  X,
+  BarChart3
 } from 'lucide-react';
 import {
   Sheet,
@@ -26,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ActivityLog, ActivityType } from '@/types/activity';
 import { cn } from '@/lib/utils';
+import { HistoryDashboard } from './HistoryDashboard';
 
 interface ActivityLogPanelProps {
   logs: ActivityLog[];
@@ -101,8 +104,10 @@ function groupLogsByDate(logs: ActivityLog[]) {
 
 export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
   const groupedLogs = groupLogsByDate(logs);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   return (
+    <>
     <Sheet>
       <SheetTrigger asChild>
         <Button 
@@ -131,17 +136,28 @@ export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          {logs.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onClear}
-              className="w-full text-xs gap-2"
+          <div className="flex gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setDashboardOpen(true)}
+              className="flex-1 text-xs gap-2"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Limpar histórico
+              <BarChart3 className="h-3.5 w-3.5" />
+              Ver Dashboard Completo
             </Button>
-          )}
+            {logs.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onClear}
+                className="text-xs gap-2"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Limpar
+              </Button>
+            )}
+          </div>
 
           <ScrollArea className="h-[calc(100vh-200px)]">
             <AnimatePresence mode="popLayout">
@@ -178,5 +194,7 @@ export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
         </div>
       </SheetContent>
     </Sheet>
+    <HistoryDashboard open={dashboardOpen} onOpenChange={setDashboardOpen} />
+    </>
   );
 }

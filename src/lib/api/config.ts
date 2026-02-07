@@ -1,5 +1,5 @@
 // API Configuration - Change this to your FastAPI backend URL
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.101.1:8000';
 
 // API version prefix
 const API_PREFIX = '/api/v1';
@@ -30,7 +30,13 @@ export const API_ENDPOINTS = {
   MONITORING_STATUS: `${API_PREFIX}/monitoring/status`,
   MONITORING_START: `${API_PREFIX}/monitoring/start`,
   MONITORING_STOP: `${API_PREFIX}/monitoring/stop`,
-  
+
+  // Analytics
+  ANALYTICS_DEVICE_USAGE: `${API_PREFIX}/analytics/device-usage`,
+  ANALYTICS_ROUTINE_EXECUTIONS: `${API_PREFIX}/analytics/routine-executions`,
+  ANALYTICS_TIMELINE: `${API_PREFIX}/analytics/timeline`,
+  ANALYTICS_SUMMARY: `${API_PREFIX}/analytics/summary`,
+
   // WebSocket
   WS: '/ws',
 } as const;

@@ -37,9 +37,10 @@ export function useActivityLog() {
   const { data: logs = [], isLoading, refetch } = useQuery({
     queryKey: ['activities'],
     queryFn: async (): Promise<ActivityLog[]> => {
-      const response = await apiClient.get<ApiActivityLog[]>(API_ENDPOINTS.ACTIVITIES);
+      // Backend returns paginated response: { items: [], total, limit, offset }
+      const response = await apiClient.get<{ items: ApiActivityLog[]; total: number; limit: number; offset: number }>(API_ENDPOINTS.ACTIVITIES);
       if (response.success && response.data) {
-        const activitiesData = response.data.map(apiActivityToActivity);
+        const activitiesData = response.data.items.map(apiActivityToActivity);
         setLocalLogs(activitiesData); // Cache locally for offline fallback
         return activitiesData;
       }

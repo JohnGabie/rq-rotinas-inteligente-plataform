@@ -4,9 +4,18 @@ Verifica periodicamente o status dos dispositivos
 """
 import asyncio
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from app.core.database import SessionLocal
+
+# Timezone de São Paulo
+SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def now_sao_paulo():
+    """Retorna datetime atual no timezone de São Paulo"""
+    return datetime.now(SAO_PAULO_TZ)
 from app.crud.device import crud_device
 from app.services.device_service import device_service
 from app.core.config import settings
@@ -35,7 +44,7 @@ class MonitoringService:
         """Retorna tempo de execução em segundos"""
         if not self._start_time:
             return 0
-        return int((datetime.utcnow() - self._start_time).total_seconds())
+        return int((now_sao_paulo() - self._start_time).total_seconds())
 
     async def start(self):
         """Inicia monitoramento em background"""
@@ -44,7 +53,7 @@ class MonitoringService:
             return
 
         self._running = True
-        self._start_time = datetime.utcnow()
+        self._start_time = now_sao_paulo()
         self._task = asyncio.create_task(self._monitoring_loop())
         logger.info("🔍 Monitoramento de dispositivos iniciado")
 
@@ -125,7 +134,7 @@ class MonitoringService:
             "is_running": self._running,
             "uptime_seconds": self.uptime_seconds,
             "check_count": self._check_count,
-            "last_check": datetime.utcnow().isoformat() if self._running else None,
+            "last_check": now_sao_paulo().isoformat() if self._running else None,
             "check_interval_seconds": settings.DEVICE_CHECK_INTERVAL
         }
 

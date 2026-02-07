@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
+import asyncio
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
@@ -21,6 +22,20 @@ from app.schemas.routine import (
     RoutineExecuteResponse
 )
 from app.schemas.common import ApiResponse
+from app.websocket.manager import manager
+
+
+def broadcast_event_sync(event: str, data: dict):
+    """Helper para broadcast de evento em contexto síncrono."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(manager.broadcast_event(event, data))
+        else:
+            loop.run_until_complete(manager.broadcast_event(event, data))
+    except RuntimeError:
+        # Se não há event loop, criar um novo
+        asyncio.run(manager.broadcast_event(event, data))
 
 router = APIRouter(prefix="/routines", tags=["Routines"])
 
@@ -97,6 +112,12 @@ def create_routine(
             routine.week_days
         )
 
+    # Broadcast evento WebSocket
+    broadcast_event_sync("routine_created", {
+        "routine_id": str(routine.id),
+        "name": routine.name
+    })
+
     return ApiResponse(
         success=True,
         data=RoutineResponse.model_validate(routine),
@@ -149,6 +170,9 @@ def update_routine(
             detail="Rotina não encontrada"
         )
 
+    # Guardar trigger_type antigo para comparação
+    old_trigger_type = routine.trigger_type
+
     routine = crud_routine.update_routine(db, routine=routine, obj_in=routine_in)
 
     # Criar log
@@ -161,6 +185,28 @@ def update_routine(
         title="Rotina atualizada",
         description=f'"{routine.name}" foi atualizada'
     )
+
+    # Sincronizar scheduler após update
+    if routine.is_active:
+        if routine.trigger_type == TriggerType.TIME:
+            # Agendar/re-agendar rotina
+            scheduler_service.schedule_routine(
+                str(routine.id),
+                routine.trigger_time,
+                routine.week_days
+            )
+        elif old_trigger_type == TriggerType.TIME:
+            # Mudou de TIME para outro tipo, remover do scheduler
+            scheduler_service.unschedule_routine(str(routine.id))
+    else:
+        # Rotina inativa, garantir que não está no scheduler
+        scheduler_service.unschedule_routine(str(routine.id))
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("routine_updated", {
+        "routine_id": str(routine.id),
+        "name": routine.name
+    })
 
     return ApiResponse(
         success=True,
@@ -190,18 +236,28 @@ def delete_routine(
 
     routine_name = routine.name
 
+    # Remover do scheduler se for rotina de horário
+    if routine.trigger_type == TriggerType.TIME:
+        scheduler_service.unschedule_routine(str(routine.id))
+
     crud_routine.delete(db, id=routine_id)
 
-    # Criar log
+    # Criar log (routine_id=None pois rotina já foi deletada)
     routine_service.create_routine_log(
         db,
         user_id=current_user.id,
-        routine_id=routine_id,
+        routine_id=None,
         routine_name=routine_name,
         activity_type=ActivityType.ROUTINE_DELETED,
         title="Rotina removida",
         description=f'"{routine_name}" foi removida'
     )
+
+    # Broadcast evento WebSocket
+    broadcast_event_sync("routine_deleted", {
+        "routine_id": str(routine_id),
+        "name": routine_name
+    })
 
     return ApiResponse(
         success=True,
@@ -217,11 +273,18 @@ def toggle_routine(
         current_user: User = Depends(get_current_user)
 ):
     """
-    Ativar/desativar rotina
+    Ativar/desativar rotina (transacional)
 
     **Request Body:**
     - is_active: true = ativar, false = desativar
+
+    **Comportamento:**
+    1. Valida rotina existe
+    2. Atualiza no banco (commit)
+    3. Verifica estado persistido
+    4. Sincroniza scheduler baseado no estado do banco
     """
+    # 1. Buscar rotina do usuário
     routine = crud_routine.get_user_routine(
         db,
         routine_id=routine_id,
@@ -234,39 +297,76 @@ def toggle_routine(
             detail="Rotina não encontrada"
         )
 
-    routine = crud_routine.toggle_active(
-        db,
-        routine_id=routine_id,
-        is_active=toggle_data.is_active
-    )
+    # Guardar dados para scheduler
+    routine_trigger_type = routine.trigger_type
+    routine_trigger_time = routine.trigger_time
+    routine_week_days = routine.week_days
+    routine_name = routine.name
 
-    # Criar log
-    activity_type = ActivityType.ROUTINE_ACTIVATED if toggle_data.is_active else ActivityType.ROUTINE_DEACTIVATED
-    routine_service.create_routine_log(
-        db,
-        user_id=current_user.id,
-        routine_id=routine.id,
-        routine_name=routine.name,
-        activity_type=activity_type,
-        title="Rotina ativada" if toggle_data.is_active else "Rotina desativada",
-        description=f'"{routine.name}" foi {"ativada" if toggle_data.is_active else "desativada"}'
-    )
+    # 2. Persistir no banco com transação explícita
+    try:
+        routine.is_active = toggle_data.is_active
+        db.add(routine)
+        db.commit()
+        db.refresh(routine)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao salvar no banco de dados: {str(e)}"
+        )
 
-    # Sincronizar scheduler
-    if routine.trigger_type == TriggerType.TIME:
-        if toggle_data.is_active:
+    # 3. Verificar estado REAL persistido no banco
+    db.refresh(routine)  # Garantir dados frescos
+    persisted_state = routine.is_active
+
+    # Validar que o estado foi salvo corretamente
+    if persisted_state != toggle_data.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Estado não foi persistido corretamente no banco"
+        )
+
+    # 4. Criar log (após confirmação do banco)
+    try:
+        activity_type = ActivityType.ROUTINE_ACTIVATED if persisted_state else ActivityType.ROUTINE_DEACTIVATED
+        routine_service.create_routine_log(
+            db,
+            user_id=current_user.id,
+            routine_id=routine.id,
+            routine_name=routine_name,
+            activity_type=activity_type,
+            title="Rotina ativada" if persisted_state else "Rotina desativada",
+            description=f'"{routine_name}" foi {"ativada" if persisted_state else "desativada"}'
+        )
+    except Exception as e:
+        # Log falhou mas estado foi salvo - não reverter, apenas logar erro
+        import logging
+        logging.getLogger(__name__).error(f"Erro ao criar log de atividade: {e}")
+
+    # 5. Sincronizar scheduler APENAS após banco confirmar
+    # Usa o estado PERSISTIDO, não o do request
+    if routine_trigger_type == TriggerType.TIME:
+        if persisted_state:
             scheduler_service.schedule_routine(
                 str(routine.id),
-                routine.trigger_time,
-                routine.week_days
+                routine_trigger_time,
+                routine_week_days
             )
         else:
             scheduler_service.unschedule_routine(str(routine.id))
 
+    # 6. Broadcast evento WebSocket
+    broadcast_event_sync("routine_toggled", {
+        "routine_id": str(routine.id),
+        "is_active": persisted_state,
+        "name": routine_name
+    })
+
     return ApiResponse(
         success=True,
         data=RoutineResponse.model_validate(routine),
-        message=f"Rotina {'ativada' if toggle_data.is_active else 'desativada'} com sucesso"
+        message=f"Rotina {'ativada' if persisted_state else 'desativada'} com sucesso"
     )
 
 
@@ -297,6 +397,13 @@ async def execute_routine(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=result_data.get("error", "Erro ao executar rotina")
         )
+
+    # Broadcast evento WebSocket
+    await manager.broadcast_event("routine_executed", {
+        "routine_id": str(routine_id),
+        "executed_actions": result_data.get("executed_actions", 0),
+        "execution_time_ms": result_data.get("execution_time_ms", 0)
+    })
 
     return ApiResponse(
         success=True,

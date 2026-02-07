@@ -36,26 +36,29 @@ export function useRoutines() {
 
   // Mutation for toggling routine active state
   const toggleMutation = useMutation({
-    mutationFn: async (id: string): Promise<{ routine: Routine; newState: boolean }> => {
-      const routine = routines.find(r => r.id === id);
+    mutationFn: async (id: string): Promise<{ routine: Routine; updatedRoutine: Routine }> => {
+      const currentRoutines = queryClient.getQueryData<Routine[]>(['routines']) || routines;
+      const routine = currentRoutines.find(r => r.id === id);
       if (!routine) throw new Error('Rotina não encontrada');
 
-      const newState = !routine.isActive;
-
-      const response = await apiClient.post(
+      // routine.isActive já foi invertido pelo onMutate — enviar o valor atual do cache
+      const response = await apiClient.patch<ApiRoutine>(
         API_ENDPOINTS.ROUTINE_TOGGLE(id),
-        { is_active: newState }
+        { is_active: routine.isActive }
       );
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || 'Erro ao alternar rotina');
       }
 
-      return { routine, newState };
+      // Converter resposta da API para tipo do frontend
+      const updatedRoutine = apiRoutineToRoutine(response.data);
+      return { routine, updatedRoutine };
     },
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ['routines'] });
       const previousRoutines = queryClient.getQueryData<Routine[]>(['routines']);
 
+      // Optimistic update
       queryClient.setQueryData<Routine[]>(['routines'], (old) =>
         old?.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r)
       );
@@ -65,22 +68,30 @@ export function useRoutines() {
 
       return { previousRoutines };
     },
-    onSuccess: ({ routine, newState }) => {
+    onSuccess: ({ routine, updatedRoutine }) => {
+      // Usar a resposta do servidor, não o estado otimista
+      queryClient.setQueryData<Routine[]>(['routines'], (old) =>
+        old?.map(r => r.id === updatedRoutine.id ? updatedRoutine : r)
+      );
+      setLocalRoutines(prev =>
+        prev.map(r => r.id === updatedRoutine.id ? updatedRoutine : r)
+      );
+
       addLog({
-        type: newState ? 'routine_activated' : 'routine_deactivated',
-        title: newState ? 'Rotina ativada' : 'Rotina desativada',
-        description: `"${routine.name}" foi ${newState ? 'ativada' : 'desativada'}`,
+        type: updatedRoutine.isActive ? 'routine_activated' : 'routine_deactivated',
+        title: updatedRoutine.isActive ? 'Rotina ativada' : 'Rotina desativada',
+        description: `"${routine.name}" foi ${updatedRoutine.isActive ? 'ativada' : 'desativada'}`,
         routineName: routine.name,
       });
 
       sendNotification({
-        title: newState ? '▶️ Rotina ativada' : '⏸️ Rotina desativada',
-        body: `"${routine.name}" foi ${newState ? 'ativada' : 'desativada'}.`,
+        title: updatedRoutine.isActive ? '▶️ Rotina ativada' : '⏸️ Rotina desativada',
+        body: `"${routine.name}" foi ${updatedRoutine.isActive ? 'ativada' : 'desativada'}.`,
       });
 
       toast({
-        title: newState ? 'Rotina ativada' : 'Rotina desativada',
-        description: `"${routine.name}" foi ${newState ? 'ativada' : 'desativada'}.`,
+        title: updatedRoutine.isActive ? 'Rotina ativada' : 'Rotina desativada',
+        description: `"${routine.name}" foi ${updatedRoutine.isActive ? 'ativada' : 'desativada'}.`,
       });
     },
     onError: (error: Error, _id, context) => {
@@ -148,11 +159,13 @@ export function useRoutines() {
 
   // Mutation for updating a routine
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Routine> }): Promise<{ id: string; updates: Partial<Routine>; oldRoutine?: Routine }> => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Routine> }): Promise<{ updatedRoutine: Routine; oldRoutine?: Routine }> => {
       const oldRoutine = routines.find(r => r.id === id);
 
       const updateRequest: RoutineUpdateRequest = {};
       if (updates.name !== undefined) updateRequest.name = updates.name;
+      if (updates.isActive !== undefined) updateRequest.is_active = updates.isActive;
+      if (updates.triggerType !== undefined) updateRequest.trigger_type = updates.triggerType;
       if (updates.triggerTime !== undefined) updateRequest.trigger_time = updates.triggerTime;
       if (updates.weekDays !== undefined) updateRequest.week_days = updates.weekDays;
       if (updates.triggerRoutineId !== undefined) updateRequest.trigger_routine_id = updates.triggerRoutineId;
@@ -172,26 +185,28 @@ export function useRoutines() {
         API_ENDPOINTS.ROUTINE_BY_ID(id),
         updateRequest
       );
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || 'Erro ao atualizar rotina');
       }
 
-      return { id, updates, oldRoutine };
+      // Usar resposta do servidor
+      const updatedRoutine = apiRoutineToRoutine(response.data);
+      return { updatedRoutine, oldRoutine };
     },
-    onSuccess: ({ id, updates, oldRoutine }) => {
-      const updatedData = { ...updates, updatedAt: new Date().toISOString() };
+    onSuccess: ({ updatedRoutine, oldRoutine }) => {
+      // Usar dados do servidor, não dados locais
       queryClient.setQueryData<Routine[]>(['routines'], (old) =>
-        old?.map(r => r.id === id ? { ...r, ...updatedData } : r)
+        old?.map(r => r.id === updatedRoutine.id ? updatedRoutine : r)
       );
       setLocalRoutines(prev =>
-        prev.map(r => r.id === id ? { ...r, ...updatedData } : r)
+        prev.map(r => r.id === updatedRoutine.id ? updatedRoutine : r)
       );
 
       addLog({
         type: 'routine_updated',
         title: 'Rotina atualizada',
-        description: `"${updates.name || oldRoutine?.name || 'Rotina'}" foi atualizada`,
-        routineName: updates.name || oldRoutine?.name,
+        description: `"${updatedRoutine.name}" foi atualizada`,
+        routineName: updatedRoutine.name,
       });
 
       toast({
@@ -336,6 +351,7 @@ export function useRoutines() {
     error,
     refetch,
     toggleRoutine,
+    isToggling: toggleMutation.isPending,
     addRoutine,
     updateRoutine,
     deleteRoutine,

@@ -2,18 +2,28 @@
 Routine Service - Execução de rotinas e lógica de negócio
 """
 import asyncio
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.models.routine import Routine
+
+# Timezone de São Paulo
+SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def now_sao_paulo():
+    """Retorna datetime atual no timezone de São Paulo"""
+    return datetime.now(SAO_PAULO_TZ)
 from app.models.enums import ActivityType
 from app.crud.routine import crud_routine
 from app.crud.activity_log import crud_activity_log
 from app.services.device_service import device_service
 from app.schemas.activity_log import ActivityLogCreate
 from app.utils.logger import logger
+from app.websocket.manager import manager
 
 
 class RoutineService:
@@ -57,10 +67,14 @@ class RoutineService:
         is_simultaneous = all(action.delay == 0 for action in sorted_actions)
 
         # Iniciar execução
-        start_time = datetime.utcnow()
+        start_time = now_sao_paulo()
         results = []
         executed = 0
         failed = 0
+
+        # Debug: mostrar delays de cada ação
+        for idx, act in enumerate(sorted_actions):
+            logger.info(f"  Ação {idx + 1}: device={act.device_id}, delay={act.delay}s, order={act.order}")
 
         logger.info(
             f"Executando rotina '{routine.name}' "
@@ -82,20 +96,26 @@ class RoutineService:
                 results.append({
                     "device_id": str(action.device_id),
                     "success": success,
-                    "executed_at": datetime.utcnow().isoformat(),
+                    "executed_at": now_sao_paulo().isoformat(),
                     "error": error_msg
                 })
 
                 if success:
                     executed += 1
+                    # Broadcast evento para atualização em tempo real
+                    await manager.broadcast_event("device_toggled", {
+                        "device_id": str(action.device_id),
+                        "is_on": action.turn_on
+                    })
                 else:
                     failed += 1
         else:
-            # Execução sequencial (respeita delays)
+            # Execução sequencial (delay = espera ANTES de executar esta ação)
             for i, action in enumerate(sorted_actions):
-                # Aguardar delay da ação anterior (se houver)
-                if i > 0 and sorted_actions[i - 1].delay > 0:
-                    await asyncio.sleep(sorted_actions[i - 1].delay)
+                # Aguardar delay ANTES de executar (relativo à ação anterior)
+                if action.delay > 0:
+                    logger.info(f"Aguardando {action.delay}s antes da ação {i + 1}")
+                    await asyncio.sleep(action.delay)
 
                 success, error_msg = device_service.toggle_device(
                     db,
@@ -104,20 +124,27 @@ class RoutineService:
                     state=action.turn_on
                 )
 
+                logger.info(f"Ação {i + 1} executada: device={action.device_id}, success={success}")
+
                 results.append({
                     "device_id": str(action.device_id),
                     "success": success,
-                    "executed_at": datetime.utcnow().isoformat(),
+                    "executed_at": now_sao_paulo().isoformat(),
                     "error": error_msg
                 })
 
                 if success:
                     executed += 1
+                    # Broadcast evento para atualização em tempo real
+                    await manager.broadcast_event("device_toggled", {
+                        "device_id": str(action.device_id),
+                        "is_on": action.turn_on
+                    })
                 else:
                     failed += 1
 
         # Calcular tempo de execução
-        end_time = datetime.utcnow()
+        end_time = now_sao_paulo()
         execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
         # Atualizar timestamp de última execução
@@ -185,7 +212,7 @@ class RoutineService:
             db: Session,
             *,
             user_id: UUID,
-            routine_id: UUID,
+            routine_id: Optional[UUID],
             routine_name: str,
             activity_type: ActivityType,
             title: str,

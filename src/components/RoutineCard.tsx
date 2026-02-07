@@ -14,6 +14,7 @@ interface RoutineCardProps {
   onToggle: (id: string) => void;
   onEdit?: (routine: Routine) => void;
   onExecute?: (id: string) => void;
+  isToggling?: boolean;
 }
 
 const weekDayLabels: Record<WeekDay, string> = {
@@ -28,7 +29,7 @@ const weekDayLabels: Record<WeekDay, string> = {
 
 const allWeekDays: WeekDay[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
-export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit, onExecute }: RoutineCardProps) {
+export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit, onExecute, isToggling }: RoutineCardProps) {
   const getDeviceName = (deviceId: string) => {
     return devices.find((d) => d.id === deviceId)?.name || 'Dispositivo removido';
   };
@@ -159,6 +160,7 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
             <Switch
               checked={routine.isActive}
               onCheckedChange={() => onToggle(routine.id)}
+              disabled={isToggling}
               aria-label={`${routine.isActive ? 'Desativar' : 'Ativar'} ${routine.name}`}
             />
           )}
@@ -196,43 +198,49 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
           {sortedActions.map((action, index) => {
             const device = getDevice(action.deviceId);
             const IconComponent = device?.icon ? getDeviceIcon(device.icon) : null;
-            const isLast = index === sortedActions.length - 1;
-            
+
             return (
-              <div
-                key={`${action.deviceId}-${index}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium",
-                  action.turnOn
-                    ? "bg-primary/20 text-primary"
-                    : "bg-secondary text-muted-foreground"
-                )}
-              >
-                {/* Order number */}
-                <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-background text-[9px] sm:text-[10px] font-bold">
-                  {action.order}°
-                </span>
-
-                {/* Device icon */}
-                {IconComponent && <IconComponent className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-
-                {/* Action icon */}
-                {action.turnOn ? (
-                  <Power className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                ) : (
-                  <PowerOff className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+              <div key={`${action.deviceId}-${index}`} className="flex flex-col gap-1.5 sm:gap-2">
+                {/* Delay before this action */}
+                {action.delay > 0 && (
+                  <div className="flex items-center gap-1.5 pl-3 sm:pl-4">
+                    <div className="w-px h-3 bg-muted-foreground/30" />
+                    <span className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                      <Timer className="h-3 w-3" />
+                      {action.delay >= 60
+                        ? `${Math.floor(action.delay / 60)}min${action.delay % 60 > 0 ? ` ${action.delay % 60}s` : ''}`
+                        : `${action.delay}s`
+                      } de espera
+                    </span>
+                  </div>
                 )}
 
-                {/* Device name */}
-                <span className="truncate max-w-[80px] sm:max-w-[120px]">{getDeviceName(action.deviceId)}</span>
-
-                {/* Delay indicator */}
-                {!isLast && action.delay > 0 && (
-                  <span className="flex items-center gap-0.5 text-muted-foreground ml-1">
-                    <Timer className="h-2.5 w-2.5" />
-                    {action.delay}s
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium",
+                    action.turnOn
+                      ? "bg-primary/20 text-primary"
+                      : "bg-secondary text-muted-foreground"
+                  )}
+                >
+                  {/* Order number */}
+                  <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-background text-[9px] sm:text-[10px] font-bold">
+                    {action.order}°
                   </span>
-                )}
+
+                  {/* Device icon */}
+                  {IconComponent && <IconComponent className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+
+                  {/* Action icon */}
+                  {action.turnOn ? (
+                    <Power className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  ) : (
+                    <PowerOff className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  )}
+
+                  {/* Device name */}
+                  <span className="truncate max-w-[80px] sm:max-w-[120px]">{getDeviceName(action.deviceId)}</span>
+                </div>
               </div>
             );
           })}

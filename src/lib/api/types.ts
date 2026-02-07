@@ -188,6 +188,8 @@ export interface RoutineCreateRequest {
 
 export interface RoutineUpdateRequest {
   name?: string;
+  is_active?: boolean;
+  trigger_type?: TriggerType;
   trigger_time?: string;
   week_days?: WeekDay[];
   trigger_routine_id?: string;
@@ -261,4 +263,99 @@ export interface WsRoutineExecuted {
   routine_id: string;
   executed_actions: number;
   failed_actions: number;
+}
+
+// ============= ANALYTICS =============
+
+export type AnalyticsPeriod = '7d' | '30d' | '90d';
+export type TriggerSource = 'manual' | 'routine' | 'scheduled' | 'master_switch';
+
+export interface DeviceUsageItem {
+  device_id: string;
+  device_name: string;
+  total_seconds: number;
+  total_hours: number;
+  session_count: number;
+}
+
+export interface DailyUsage {
+  date: string; // YYYY-MM-DD
+  total_seconds: number;
+  total_hours: number;
+}
+
+export interface DeviceUsageResponse {
+  period_start: string;
+  period_end: string;
+  by_device: DeviceUsageItem[];
+  daily_usage: DailyUsage[];
+  total_hours: number;
+}
+
+export interface RoutineExecutionItem {
+  id: string;
+  routine_id: string | null;
+  routine_name: string;
+  executed_at: string;
+  timestamp: number;
+  success: boolean;
+  duration_ms?: number;
+  trigger_type?: string;
+}
+
+export interface RoutineExecutionStats {
+  routine_id: string;
+  routine_name: string;
+  total_executions: number;
+  successful: number;
+  failed: number;
+  success_rate: number;
+}
+
+export interface RoutineExecutionsResponse {
+  period_start: string;
+  period_end: string;
+  executions: RoutineExecutionItem[];
+  stats_by_routine: RoutineExecutionStats[];
+  total_executions: number;
+}
+
+export interface TimelineEvent {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  timestamp: number;
+  datetime: string;
+  device_id?: string;
+  device_name?: string;
+  routine_id?: string;
+  routine_name?: string;
+  duration_seconds?: number;
+  end_timestamp?: number;
+}
+
+export interface TimelineSession {
+  device_id: string;
+  device_name: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  is_active: boolean;
+  trigger_source: TriggerSource;
+}
+
+export interface TimelineResponse {
+  date: string;
+  events: TimelineEvent[];
+  sessions: TimelineSession[];
+}
+
+export interface AnalyticsSummary {
+  period_start: string;
+  period_end: string;
+  total_sessions: number;
+  total_routine_executions: number;
+  total_hours_on: number;
+  active_devices: number;
 }
