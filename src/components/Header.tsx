@@ -3,11 +3,10 @@ import { Zap, Moon, Sun, Bell, BellOff, LogOut } from 'lucide-react';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ActivityLogPanel } from '@/components/ActivityLogPanel';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +16,7 @@ import {
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { enabled: notificationsEnabled, toggleNotifications, permission } = useNotifications();
+  const { enabled: notificationsEnabled, toggleNotifications, permission } = useNotificationContext();
   const { logs, clearLogs } = useActivityLog();
   const { logout, user } = useAuthContext();
   return (
@@ -45,8 +44,9 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   onClick={toggleNotifications}
+                  disabled={permission === 'denied'}
                   className="h-8 w-8 sm:h-9 sm:w-9"
-                  aria-label={notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
+                  aria-label={permission === 'denied' ? 'Notificações bloqueadas' : notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
                 >
                   <motion.div
                     key={notificationsEnabled ? 'on' : 'off'}
@@ -95,13 +95,6 @@ export function Header() {
             </motion.div>
           </Button>
           
-          <ConnectionStatus />
-          
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-primary/20 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
-            <span className="hidden xs:inline">Sistema</span> Ativo
-          </span>
-
           {user?.role === 'admin' && <UserManagementDialog />}
 
           <TooltipProvider>

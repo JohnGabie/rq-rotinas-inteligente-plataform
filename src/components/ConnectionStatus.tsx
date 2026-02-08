@@ -1,5 +1,4 @@
 import { Wifi, WifiOff, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -18,10 +17,9 @@ export function ConnectionStatus({ isLoading, isError }: ConnectionStatusProps) 
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className="gap-1 text-xs">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Conectando
-            </Badge>
+            <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-muted-foreground">
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+            </span>
           </TooltipTrigger>
           <TooltipContent>
             <p>Conectando ao servidor...</p>
@@ -36,10 +34,9 @@ export function ConnectionStatus({ isLoading, isError }: ConnectionStatusProps) 
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="destructive" className="gap-1 text-xs">
-              <WifiOff className="h-3 w-3" />
-              Offline
-            </Badge>
+            <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-destructive">
+              <WifiOff className="h-4 w-4 sm:h-5 sm:w-5" />
+            </span>
           </TooltipTrigger>
           <TooltipContent>
             <p>Erro de conexão com o servidor</p>
@@ -53,10 +50,9 @@ export function ConnectionStatus({ isLoading, isError }: ConnectionStatusProps) 
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-600">
-            <Wifi className="h-3 w-3" />
-            Online
-          </Badge>
+          <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-green-600">
+            <Wifi className="h-4 w-4 sm:h-5 sm:w-5" />
+          </span>
         </TooltipTrigger>
         <TooltipContent>
           <p>Conectado ao servidor</p>

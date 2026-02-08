@@ -4,7 +4,7 @@ import { Routine } from '@/types/device';
 import { toast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useActivityLog } from '@/hooks/useActivityLog';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiRoutine, RoutineExecuteResponse, RoutineCreateRequest, RoutineUpdateRequest } from '@/lib/api/types';
@@ -16,7 +16,7 @@ export function useRoutines() {
   const queryClient = useQueryClient();
   const [localRoutines, setLocalRoutines] = useLocalStorage<Routine[]>(STORAGE_KEY, []);
   const { addLog } = useActivityLog();
-  const { sendNotification } = useNotifications();
+  const { sendNotification } = useNotificationContext();
 
   // Query to fetch routines from API
   const { data: routines = [], isLoading, error, refetch } = useQuery({

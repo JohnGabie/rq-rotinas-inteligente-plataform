@@ -15,9 +15,14 @@ export function useNotifications() {
 
   useEffect(() => {
     if ('Notification' in window) {
-      setPermission(Notification.permission);
+      const perm = Notification.permission;
+      setPermission(perm);
+      // Sync: if permission was revoked, disable notifications
+      if (perm === 'denied' && enabled) {
+        setEnabled(false);
+      }
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) {
@@ -26,7 +31,7 @@ export function useNotifications() {
 
     const result = await Notification.requestPermission();
     setPermission(result);
-    
+
     if (result === 'granted') {
       setEnabled(true);
       return true;
@@ -48,16 +53,19 @@ export function useNotifications() {
     }
   }, [enabled, permission]);
 
-  const toggleNotifications = useCallback(() => {
+  const toggleNotifications = useCallback(async () => {
+    if (permission === 'denied') {
+      return;
+    }
     if (!enabled && permission !== 'granted') {
-      requestPermission();
+      await requestPermission();
     } else {
       setEnabled(!enabled);
     }
   }, [enabled, permission, requestPermission, setEnabled]);
 
   return {
-    enabled,
+    enabled: enabled && permission === 'granted',
     permission,
     requestPermission,
     sendNotification,

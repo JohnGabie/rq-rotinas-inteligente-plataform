@@ -13,6 +13,7 @@ from app.core.rate_limit import limiter
 from app.api.v1.router import api_router
 from app.websocket.routes import router as ws_router
 from app.services.scheduler_service import scheduler_service
+from app.services.monitoring_service import monitoring_service
 from app.utils.logger import logger
 
 
@@ -23,13 +24,16 @@ async def lifespan(app: FastAPI):
     logger.info("Iniciando aplicação...")
     scheduler_service.start()
     logger.info("Scheduler de rotinas iniciado")
+    await monitoring_service.start()
+    logger.info("Monitoramento de dispositivos iniciado")
 
     yield
 
     # Shutdown
     logger.info("Encerrando aplicação...")
+    await monitoring_service.stop()
     scheduler_service.stop()
-    logger.info("Scheduler parado")
+    logger.info("Scheduler e monitoramento parados")
 
 
 # Criar aplicação FastAPI com lifespan
