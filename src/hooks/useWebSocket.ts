@@ -45,9 +45,15 @@ export function useWebSocket() {
     const session = localStorage.getItem('rotina-inteligente-session');
     const token = session ? JSON.parse(session).token : null;
 
-    // Construir URL com token se disponível
+    // Não conectar sem token - servidor requer autenticação
+    if (!token) {
+      setStatus('disconnected');
+      return;
+    }
+
+    // Construir URL com token
     const baseUrl = getWsUrl();
-    const url = token ? `${baseUrl}?token=${token}` : baseUrl;
+    const url = `${baseUrl}?token=${token}`;
 
     try {
       ws.current = new WebSocket(url);

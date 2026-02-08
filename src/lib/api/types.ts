@@ -60,6 +60,24 @@ export interface AuthUser {
   role?: UserRole;
 }
 
+export interface UserCreateRequest {
+  email: string;
+  name: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface UserUpdateRequest {
+  name?: string;
+  email?: string;
+  is_active?: boolean;
+  role?: UserRole;
+}
+
+export interface UserPasswordResetRequest {
+  new_password: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Zap, Moon, Sun, Bell, BellOff, LogOut } from 'lucide-react';
+import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -100,6 +101,8 @@ export function Header() {
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
             <span className="hidden xs:inline">Sistema</span> Ativo
           </span>
+
+          {user?.role === 'admin' && <UserManagementDialog />}
 
           <TooltipProvider>
             <Tooltip>

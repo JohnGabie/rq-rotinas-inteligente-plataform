@@ -75,6 +75,14 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
         return user
 
+    def update_password(self, db: Session, *, user: User, new_password: str) -> User:
+        """Forçar troca de senha de um usuário (admin)"""
+        user.password_hash = hash_password(new_password)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+
     def is_active(self, user: User) -> bool:
         """Verifica se usuário está ativo"""
         return user.is_active

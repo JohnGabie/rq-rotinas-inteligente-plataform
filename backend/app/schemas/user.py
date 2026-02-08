@@ -32,6 +32,11 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
 
 
+class UserPasswordReset(BaseModel):
+    """Schema para forçar troca de senha (admin)"""
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
 # ============= RESPONSE SCHEMAS =============
 
 class UserBase(BaseModel):

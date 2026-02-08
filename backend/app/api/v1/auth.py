@@ -1,7 +1,7 @@
 """
 Auth Endpoints - Login, Logout, Me
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
@@ -10,13 +10,16 @@ from app.schemas.user import UserLogin, LoginResponse, UserResponse
 from app.schemas.common import ApiResponse
 from app.core.security import create_access_token
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=ApiResponse[LoginResponse])
+@limiter.limit("5/minute")
 def login(
+        request: Request,
         credentials: UserLogin,
         db: Session = Depends(get_db)
 ):

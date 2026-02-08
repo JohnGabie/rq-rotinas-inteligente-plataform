@@ -1,5 +1,5 @@
-// API Configuration - Change this to your FastAPI backend URL
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.101.1:8000';
+// API Configuration - uses relative URLs so nginx proxies to backend
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // API version prefix
 const API_PREFIX = '/api/v1';
@@ -37,6 +37,11 @@ export const API_ENDPOINTS = {
   ANALYTICS_TIMELINE: `${API_PREFIX}/analytics/timeline`,
   ANALYTICS_SUMMARY: `${API_PREFIX}/analytics/summary`,
 
+  // Users (admin)
+  USERS: `${API_PREFIX}/users`,
+  USER_BY_ID: (id: string) => `${API_PREFIX}/users/${id}`,
+  USER_PASSWORD: (id: string) => `${API_PREFIX}/users/${id}/password`,
+
   // WebSocket
   WS: '/ws',
 } as const;
@@ -46,7 +51,6 @@ export const getApiUrl = (endpoint: string): string => {
 };
 
 export const getWsUrl = (): string => {
-  const wsProtocol = API_BASE_URL.startsWith('https') ? 'wss' : 'ws';
-  const baseWithoutProtocol = API_BASE_URL.replace(/^https?:\/\//, '');
-  return `${wsProtocol}://${baseWithoutProtocol}${API_ENDPOINTS.WS}`;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}${API_ENDPOINTS.WS}`;
 };
