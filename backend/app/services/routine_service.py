@@ -36,8 +36,7 @@ class RoutineService:
             self,
             db: Session,
             *,
-            routine_id: UUID,
-            user_id: UUID
+            routine_id: UUID
     ) -> Tuple[bool, Dict]:
         """
         Executa uma rotina completa
@@ -45,17 +44,12 @@ class RoutineService:
         Args:
             db: Database session
             routine_id: UUID da rotina
-            user_id: UUID do usuário (validação)
 
         Returns:
             Tuple[success, result_data]
         """
         # Buscar rotina
-        routine = crud_routine.get_user_routine(
-            db,
-            routine_id=routine_id,
-            user_id=user_id
-        )
+        routine = crud_routine.get(db, id=routine_id)
 
         if not routine:
             return False, {"error": "Rotina não encontrada"}
@@ -89,7 +83,6 @@ class RoutineService:
                 success, error_msg = device_service.toggle_device(
                     db,
                     device_id=action.device_id,
-                    user_id=user_id,
                     state=action.turn_on
                 )
 
@@ -120,7 +113,6 @@ class RoutineService:
                 success, error_msg = device_service.toggle_device(
                     db,
                     device_id=action.device_id,
-                    user_id=user_id,
                     state=action.turn_on
                 )
 

@@ -24,7 +24,6 @@ class DeviceService:
             db: Session,
             *,
             device_id: UUID,
-            user_id: UUID,
             state: bool
     ) -> Tuple[bool, Optional[str]]:
         """
@@ -34,7 +33,6 @@ class DeviceService:
         Args:
             db: Database session
             device_id: UUID do dispositivo
-            user_id: UUID do usuário (validação)
             state: True = ligar, False = desligar
 
         Returns:
@@ -42,12 +40,8 @@ class DeviceService:
             - (True, None) se sucesso
             - (False, "mensagem de erro") se falha
         """
-        # Buscar dispositivo do usuário
-        device = crud_device.get_user_device(
-            db,
-            device_id=device_id,
-            user_id=user_id
-        )
+        # Buscar dispositivo
+        device = crud_device.get(db, id=device_id)
 
         if not device:
             return False, "Dispositivo não encontrado"
@@ -104,22 +98,20 @@ class DeviceService:
             self,
             db: Session,
             *,
-            user_id: UUID,
             state: bool
     ) -> Tuple[int, int, List[UUID]]:
         """
-        Alterna todos os dispositivos online de um usuário
+        Alterna todos os dispositivos online
 
         Args:
             db: Database session
-            user_id: UUID do usuário
             state: True = ligar todos, False = desligar todos
 
         Returns:
             Tuple[toggled_count, failed_count, failed_device_ids]
         """
-        # Buscar dispositivos online
-        devices = crud_device.get_online_devices(db, user_id=user_id)
+        # Buscar todos os dispositivos online
+        devices = crud_device.get_all_online_devices(db)
 
         toggled = 0
         failed = 0
@@ -129,7 +121,6 @@ class DeviceService:
             success, _ = self.toggle_device(
                 db,
                 device_id=device.id,
-                user_id=user_id,
                 state=state
             )
 

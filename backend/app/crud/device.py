@@ -125,6 +125,17 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
 
         return device
 
+    def get_all_online_devices(
+            self,
+            db: Session
+    ) -> List[Device]:
+        """Buscar todos os dispositivos online (sem filtro de usuário)"""
+        return (
+            db.query(Device)
+            .filter(Device.status == DeviceStatus.ONLINE)
+            .all()
+        )
+
     def get_user_device(
             self,
             db: Session,

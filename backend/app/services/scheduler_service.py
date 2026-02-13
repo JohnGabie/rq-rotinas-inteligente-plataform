@@ -183,8 +183,7 @@ class SchedulerService:
             # Executar rotina
             success, result = await routine_service.execute_routine(
                 db,
-                routine_id=routine.id,
-                user_id=routine.user_id
+                routine_id=routine.id
             )
 
             if success:

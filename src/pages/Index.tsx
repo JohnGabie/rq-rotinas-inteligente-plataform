@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDevices } from '@/hooks/useDevices';
 import { useRoutines } from '@/hooks/useRoutines';
 import { Device, Routine } from '@/types/device';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 type DeviceFilter = 'all' | 'online' | 'offline';
@@ -21,8 +22,12 @@ type RoutineFilter = 'all' | 'active' | 'inactive';
 const Index = () => {
   const {
     devices,
+    isLoading: devicesLoading,
     toggleDevice,
     toggleAllDevices,
+    isTogglingDevice,
+    togglingDeviceId,
+    isTogglingAll,
     addDevice,
     updateDevice,
     deleteDevice,
@@ -30,12 +35,16 @@ const Index = () => {
 
   const {
     routines,
+    isLoading: routinesLoading,
     toggleRoutine,
     isToggling,
+    togglingRoutineId,
     addRoutine,
     updateRoutine,
     deleteRoutine,
     executeRoutine,
+    isExecuting,
+    executingRoutineId,
   } = useRoutines();
 
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
@@ -113,7 +122,7 @@ const Index = () => {
 
   const filterButtonClass = (active: boolean) =>
     cn(
-      "text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3 rounded-lg transition-all",
+      "text-xs sm:text-sm h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg transition-all",
       active
         ? "bg-primary text-primary-foreground"
         : "bg-secondary text-muted-foreground hover:bg-secondary/80"
@@ -132,19 +141,19 @@ const Index = () => {
         >
           <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
             <p className="text-lg sm:text-2xl font-bold text-foreground">{devices.length}</p>
-            <p className="text-[10px] sm:text-sm text-muted-foreground">Dispositivos</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Dispositivos</p>
           </div>
           <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
             <p className="text-lg sm:text-2xl font-bold text-primary">{onlineCount}</p>
-            <p className="text-[10px] sm:text-sm text-muted-foreground">Online</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Online</p>
           </div>
           <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
             <p className="text-lg sm:text-2xl font-bold text-foreground">{routines.length}</p>
-            <p className="text-[10px] sm:text-sm text-muted-foreground">Rotinas</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Rotinas</p>
           </div>
           <div className="rounded-lg sm:rounded-xl border border-border bg-card p-2 sm:p-4">
             <p className="text-lg sm:text-2xl font-bold text-primary">{activeRoutinesCount}</p>
-            <p className="text-[10px] sm:text-sm text-muted-foreground">Ativas</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Ativas</p>
           </div>
         </motion.div>
 
@@ -162,7 +171,7 @@ const Index = () => {
 
           {/* Devices Tab */}
           <TabsContent value="devices" className="space-y-4 sm:space-y-6">
-            <MasterSwitch devices={devices} onToggleAll={toggleAllDevices} />
+            <MasterSwitch devices={devices} onToggleAll={toggleAllDevices} isToggling={isTogglingAll} />
 
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base sm:text-xl font-semibold text-foreground">
@@ -206,23 +215,41 @@ const Index = () => {
             </div>
 
             <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredDevices.map((device, index) => (
-                <motion.div
-                  key={device.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <DeviceCard
-                    device={device}
-                    onToggle={toggleDevice}
-                    onEdit={handleEditDevice}
-                  />
-                </motion.div>
-              ))}
+              {devicesLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-card p-3 sm:p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl shrink-0" />
+                        <div className="flex flex-col gap-1.5 flex-1">
+                          <Skeleton className="h-4 sm:h-5 w-24 sm:w-32" />
+                          <Skeleton className="h-3 sm:h-4 w-16 sm:w-20" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-5 w-9 rounded-full" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredDevices.map((device, index) => (
+                  <motion.div
+                    key={device.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <DeviceCard
+                      device={device}
+                      onToggle={toggleDevice}
+                      onEdit={handleEditDevice}
+                      isToggling={isTogglingDevice && togglingDeviceId === device.id}
+                    />
+                  </motion.div>
+                ))
+              )}
             </div>
 
-            {filteredDevices.length === 0 && devices.length > 0 && (
+            {!devicesLoading && filteredDevices.length === 0 && devices.length > 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
                 <p className="text-sm sm:text-base text-muted-foreground">
                   Nenhum dispositivo encontrado com os filtros atuais
@@ -240,7 +267,7 @@ const Index = () => {
               </div>
             )}
 
-            {devices.length === 0 && (
+            {!devicesLoading && devices.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
                 <Plug className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
                 <div className="text-center">
@@ -303,27 +330,54 @@ const Index = () => {
             </div>
 
             <div className="grid gap-2 sm:gap-4 sm:grid-cols-2">
-              {filteredRoutines.map((routine, index) => (
-                <motion.div
-                  key={routine.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <RoutineCard
-                    routine={routine}
-                    devices={devices}
-                    routines={routines}
-                    onToggle={toggleRoutine}
-                    onEdit={handleEditRoutine}
-                    onExecute={executeRoutine}
-                    isToggling={isToggling}
-                  />
-                </motion.div>
-              ))}
+              {routinesLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-card p-3 sm:p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl shrink-0" />
+                        <div className="flex flex-col gap-1.5 flex-1">
+                          <Skeleton className="h-4 sm:h-5 w-28 sm:w-36" />
+                          <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-5 w-9 rounded-full" />
+                    </div>
+                    <div className="mt-3 sm:mt-4 flex gap-1">
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <Skeleton key={j} className="h-6 w-7 sm:w-8 rounded" />
+                      ))}
+                    </div>
+                    <div className="mt-3 sm:mt-4 space-y-1.5">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-7 w-32 rounded-lg" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredRoutines.map((routine, index) => (
+                  <motion.div
+                    key={routine.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <RoutineCard
+                      routine={routine}
+                      devices={devices}
+                      routines={routines}
+                      onToggle={toggleRoutine}
+                      onEdit={handleEditRoutine}
+                      onExecute={executeRoutine}
+                      isToggling={isToggling && togglingRoutineId === routine.id}
+                      isExecuting={isExecuting && executingRoutineId === routine.id}
+                    />
+                  </motion.div>
+                ))
+              )}
             </div>
 
-            {filteredRoutines.length === 0 && routines.length > 0 && (
+            {!routinesLoading && filteredRoutines.length === 0 && routines.length > 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
                 <p className="text-sm sm:text-base text-muted-foreground">
                   Nenhuma rotina encontrada com os filtros atuais
@@ -341,7 +395,7 @@ const Index = () => {
               </div>
             )}
 
-            {routines.length === 0 && (
+            {!routinesLoading && routines.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-xl border border-dashed border-border py-10 sm:py-16 px-4">
                 <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
                 <div className="text-center">

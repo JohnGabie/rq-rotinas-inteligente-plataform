@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Clock, Zap, Calendar, Power, PowerOff, Edit2, Play, Hand, GitBranch, ToggleRight, Timer } from 'lucide-react';
+import { Clock, Zap, Calendar, Power, PowerOff, Edit2, Play, Hand, GitBranch, ToggleRight, Timer, Loader2 } from 'lucide-react';
 import { Routine, Device, WeekDay } from '@/types/device';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ interface RoutineCardProps {
   onEdit?: (routine: Routine) => void;
   onExecute?: (id: string) => void;
   isToggling?: boolean;
+  isExecuting?: boolean;
 }
 
 const weekDayLabels: Record<WeekDay, string> = {
@@ -29,7 +30,7 @@ const weekDayLabels: Record<WeekDay, string> = {
 
 const allWeekDays: WeekDay[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
-export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit, onExecute, isToggling }: RoutineCardProps) {
+export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit, onExecute, isToggling, isExecuting }: RoutineCardProps) {
   const getDeviceName = (deviceId: string) => {
     return devices.find((d) => d.id === deviceId)?.name || 'Dispositivo removido';
   };
@@ -151,18 +152,31 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
               variant="default"
               size="sm"
               onClick={() => onExecute?.(routine.id)}
+              disabled={isExecuting}
               className="gap-1 h-8 px-3"
             >
-              <Play className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Executar</span>
+              {isExecuting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">{isExecuting ? 'Executando...' : 'Executar'}</span>
             </Button>
           ) : (
-            <Switch
-              checked={routine.isActive}
-              onCheckedChange={() => onToggle(routine.id)}
-              disabled={isToggling}
-              aria-label={`${routine.isActive ? 'Desativar' : 'Ativar'} ${routine.name}`}
-            />
+            <div className="relative">
+              <Switch
+                checked={routine.isActive}
+                onCheckedChange={() => onToggle(routine.id)}
+                disabled={isToggling}
+                aria-label={`${routine.isActive ? 'Desativar' : 'Ativar'} ${routine.name}`}
+                className={cn(isToggling && "opacity-30")}
+              />
+              {isToggling && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -176,7 +190,7 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
               <span
                 key={day}
                 className={cn(
-                  "flex h-5 w-6 sm:h-6 sm:w-8 items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-colors",
+                  "flex h-6 w-7 sm:h-6 sm:w-8 items-center justify-center rounded text-xs font-medium transition-colors",
                   routine.weekDays.includes(day)
                     ? "bg-primary/20 text-primary"
                     : "bg-secondary text-muted-foreground"
@@ -224,7 +238,7 @@ export function RoutineCard({ routine, devices, routines = [], onToggle, onEdit,
                   )}
                 >
                   {/* Order number */}
-                  <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-background text-[9px] sm:text-[10px] font-bold">
+                  <span className="flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-background text-[10px] sm:text-xs font-bold">
                     {action.order}°
                   </span>
 

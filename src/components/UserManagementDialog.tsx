@@ -405,7 +405,7 @@ export function UserManagementDialog() {
                     <TableHead>Email</TableHead>
                     <TableHead>Papel</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Criado em</TableHead>
+                    <TableHead className="hidden sm:table-cell">Criado em</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -429,7 +429,7 @@ export function UserManagementDialog() {
                           {u.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{formatDate(u.created_at)}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">{formatDate(u.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <TooltipProvider>

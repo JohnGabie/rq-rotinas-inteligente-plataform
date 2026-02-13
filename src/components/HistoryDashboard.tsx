@@ -75,7 +75,7 @@ export function HistoryDashboard({ open, onOpenChange }: HistoryDashboardProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-full h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b border-border/50 flex-shrink-0">
+        <DialogHeader className="px-3 sm:px-6 py-3 sm:py-4 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <History className="h-5 w-5" />
@@ -133,8 +133,8 @@ export function HistoryDashboard({ open, onOpenChange }: HistoryDashboardProps) 
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {/* Summary Cards */}
-          <div className="px-6 py-4 bg-muted/30">
-            <div className="grid grid-cols-4 gap-4">
+          <div className="px-3 sm:px-6 py-2 sm:py-4 bg-muted/30">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
               <SummaryCard
                 title="Tempo Ligado"
                 value={summary ? formatHours(summary.total_hours_on) : '-'}
@@ -168,7 +168,7 @@ export function HistoryDashboard({ open, onOpenChange }: HistoryDashboardProps) 
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <TabsList className="mx-6 mt-4 w-fit">
+            <TabsList className="mx-3 sm:mx-6 mt-3 sm:mt-4 w-fit">
               <TabsTrigger value="timeline" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Linha do Tempo
@@ -183,7 +183,7 @@ export function HistoryDashboard({ open, onOpenChange }: HistoryDashboardProps) 
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-auto px-6 pb-6 min-h-0">
+            <div className="flex-1 overflow-auto px-3 sm:px-6 pb-4 sm:pb-6 min-h-0">
               <TabsContent value="timeline" className="mt-4">
                 <TimelineView data={timeline} isLoading={isLoading} />
               </TabsContent>
@@ -213,7 +213,7 @@ interface SummaryCardProps {
 function SummaryCard({ title, value, icon: Icon, loading }: SummaryCardProps) {
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent className="p-2.5 sm:p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">{title}</p>

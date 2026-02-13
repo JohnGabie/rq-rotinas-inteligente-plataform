@@ -134,10 +134,6 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Footer hint */}
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Conta de teste: admin@admin.com / admin
-          </p>
         </div>
       </motion.div>
     </div>

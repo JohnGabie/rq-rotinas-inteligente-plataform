@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { Device } from '@/types/device';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -9,9 +9,10 @@ interface DeviceCardProps {
   device: Device;
   onToggle: (id: string) => void;
   onEdit?: (device: Device) => void;
+  isToggling?: boolean;
 }
 
-export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
+export function DeviceCard({ device, onToggle, onEdit, isToggling }: DeviceCardProps) {
   const isOnline = device.status === 'online';
   const isOn = device.isOn && isOnline;
 
@@ -82,14 +83,22 @@ export function DeviceCard({ device, onToggle, onEdit }: DeviceCardProps) {
           className="flex flex-col items-end gap-1 sm:gap-2 shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <Switch
-            checked={isOn}
-            onCheckedChange={() => onToggle(device.id)}
-            disabled={!isOnline}
-            aria-label={`${isOn ? 'Desligar' : 'Ligar'} ${device.name}`}
-          />
+          <div className="relative">
+            <Switch
+              checked={isOn}
+              onCheckedChange={() => onToggle(device.id)}
+              disabled={!isOnline || isToggling}
+              aria-label={`${isOn ? 'Desligar' : 'Ligar'} ${device.name}`}
+              className={cn(isToggling && "opacity-30")}
+            />
+            {isToggling && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           <span className="text-[10px] sm:text-xs text-muted-foreground">
-            {isOn ? 'Ligado' : 'Desligado'}
+            {isToggling ? 'Alternando...' : isOn ? 'Ligado' : 'Desligado'}
           </span>
         </div>
       </div>

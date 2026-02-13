@@ -352,9 +352,12 @@ export function useRoutines() {
     refetch,
     toggleRoutine,
     isToggling: toggleMutation.isPending,
+    togglingRoutineId: toggleMutation.variables as string | undefined,
     addRoutine,
     updateRoutine,
     deleteRoutine,
     executeRoutine,
+    isExecuting: executeMutation.isPending,
+    executingRoutineId: executeMutation.variables as string | undefined,
   };
 }

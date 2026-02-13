@@ -54,9 +54,8 @@ def list_routines(
     - skip: Offset para paginação
     - limit: Quantidade máxima
     """
-    routines = crud_routine.get_by_user(
+    routines = crud_routine.get_multi(
         db,
-        user_id=current_user.id,
         skip=skip,
         limit=limit
     )
@@ -132,11 +131,7 @@ def get_routine(
         current_user: User = Depends(get_current_user)
 ):
     """Obter detalhes de uma rotina específica"""
-    routine = crud_routine.get_user_routine(
-        db,
-        routine_id=routine_id,
-        user_id=current_user.id
-    )
+    routine = crud_routine.get(db, id=routine_id)
 
     if not routine:
         raise HTTPException(
@@ -158,11 +153,7 @@ def update_routine(
         current_user: User = Depends(get_current_user)
 ):
     """Atualizar rotina"""
-    routine = crud_routine.get_user_routine(
-        db,
-        routine_id=routine_id,
-        user_id=current_user.id
-    )
+    routine = crud_routine.get(db, id=routine_id)
 
     if not routine:
         raise HTTPException(
@@ -222,11 +213,7 @@ def delete_routine(
         current_user: User = Depends(get_current_user)
 ):
     """Deletar rotina"""
-    routine = crud_routine.get_user_routine(
-        db,
-        routine_id=routine_id,
-        user_id=current_user.id
-    )
+    routine = crud_routine.get(db, id=routine_id)
 
     if not routine:
         raise HTTPException(
@@ -284,12 +271,8 @@ def toggle_routine(
     3. Verifica estado persistido
     4. Sincroniza scheduler baseado no estado do banco
     """
-    # 1. Buscar rotina do usuário
-    routine = crud_routine.get_user_routine(
-        db,
-        routine_id=routine_id,
-        user_id=current_user.id
-    )
+    # 1. Buscar rotina
+    routine = crud_routine.get(db, id=routine_id)
 
     if not routine:
         raise HTTPException(
@@ -388,8 +371,7 @@ async def execute_routine(
     """
     success, result_data = await routine_service.execute_routine(
         db,
-        routine_id=routine_id,
-        user_id=current_user.id
+        routine_id=routine_id
     )
 
     if not success:

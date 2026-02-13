@@ -70,9 +70,8 @@ def list_devices(
     **Returns:**
     - Lista de dispositivos
     """
-    devices = crud_device.get_by_user(
+    devices = crud_device.get_multi(
         db,
-        user_id=current_user.id,
         skip=skip,
         limit=limit
     )
@@ -155,11 +154,7 @@ def get_device(
     **Errors:**
     - 404: Dispositivo não encontrado
     """
-    device = crud_device.get_user_device(
-        db,
-        device_id=device_id,
-        user_id=current_user.id
-    )
+    device = crud_device.get(db, id=device_id)
 
     if not device:
         raise HTTPException(
@@ -195,11 +190,7 @@ def update_device(
     **Errors:**
     - 404: Dispositivo não encontrado
     """
-    device = crud_device.get_user_device(
-        db,
-        device_id=device_id,
-        user_id=current_user.id
-    )
+    device = crud_device.get(db, id=device_id)
 
     if not device:
         raise HTTPException(
@@ -252,11 +243,7 @@ def delete_device(
     **Errors:**
     - 404: Dispositivo não encontrado
     """
-    device = crud_device.get_user_device(
-        db,
-        device_id=device_id,
-        user_id=current_user.id
-    )
+    device = crud_device.get(db, id=device_id)
 
     if not device:
         raise HTTPException(
@@ -316,11 +303,7 @@ def toggle_device(
     - 503: Dispositivo offline ou erro ao executar
     """
     # Buscar device para log (antes do toggle)
-    device = crud_device.get_user_device(
-        db,
-        device_id=device_id,
-        user_id=current_user.id
-    )
+    device = crud_device.get(db, id=device_id)
 
     if not device:
         raise HTTPException(
@@ -331,7 +314,6 @@ def toggle_device(
     success, error_msg = device_service.toggle_device(
         db,
         device_id=device_id,
-        user_id=current_user.id,
         state=toggle_data.state
     )
 
@@ -409,7 +391,6 @@ def toggle_all_devices(
     """
     toggled, failed, failed_ids = device_service.toggle_all_devices(
         db,
-        user_id=current_user.id,
         state=toggle_data.state
     )
 
@@ -456,11 +437,7 @@ def sync_device_state(
     - 404: Dispositivo não encontrado
     - 503: Não foi possível sincronizar
     """
-    device = crud_device.get_user_device(
-        db,
-        device_id=device_id,
-        user_id=current_user.id
-    )
+    device = crud_device.get(db, id=device_id)
 
     if not device:
         raise HTTPException(

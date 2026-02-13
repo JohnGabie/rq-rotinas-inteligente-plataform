@@ -1,14 +1,15 @@
 import { motion } from 'framer-motion';
-import { Power, PowerOff } from 'lucide-react';
+import { Power, PowerOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Device } from '@/types/device';
 
 interface MasterSwitchProps {
   devices: Device[];
   onToggleAll: (turnOn: boolean) => void;
+  isToggling?: boolean;
 }
 
-export function MasterSwitch({ devices, onToggleAll }: MasterSwitchProps) {
+export function MasterSwitch({ devices, onToggleAll, isToggling }: MasterSwitchProps) {
   const onlineDevices = devices.filter((d) => d.status === 'online');
   const onlineOnCount = onlineDevices.filter((d) => d.isOn).length;
   const allOn = onlineOnCount === onlineDevices.length && onlineDevices.length > 0;
@@ -34,20 +35,28 @@ export function MasterSwitch({ devices, onToggleAll }: MasterSwitchProps) {
           variant="master"
           size="default"
           onClick={() => onToggleAll(true)}
-          disabled={allOn}
+          disabled={allOn || isToggling}
           className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm h-9 sm:h-11 px-3 sm:px-4"
         >
-          <Power className="h-4 w-4 sm:h-5 sm:w-5" />
+          {isToggling ? (
+            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+          ) : (
+            <Power className="h-4 w-4 sm:h-5 sm:w-5" />
+          )}
           <span className="hidden xs:inline">Ligar</span> Tudo
         </Button>
         <Button
           variant="masterOff"
           size="default"
           onClick={() => onToggleAll(false)}
-          disabled={!someOn}
+          disabled={!someOn || isToggling}
           className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm h-9 sm:h-11 px-3 sm:px-4"
         >
-          <PowerOff className="h-4 w-4 sm:h-5 sm:w-5" />
+          {isToggling ? (
+            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+          ) : (
+            <PowerOff className="h-4 w-4 sm:h-5 sm:w-5" />
+          )}
           <span className="hidden xs:inline">Desligar</span> Tudo
         </Button>
       </div>
