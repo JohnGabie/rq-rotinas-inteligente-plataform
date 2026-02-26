@@ -79,13 +79,17 @@ class DeviceService:
                     )
 
             if success:
-                # Atualizar estado no banco
-                crud_device.update_status(
-                    db,
-                    device_id=device_id,
-                    status=DeviceStatus.ONLINE,
-                    is_on=state
-                )
+                # Confirmar lendo estado real do hardware após o comando
+                # Hardware é a fonte da verdade — DB recebe o estado confirmado, não o desejado
+                confirmed_state = self.sync_device_state(db, device_id=device_id)
+                if confirmed_state is None:
+                    return False, "Dispositivo ficou offline após o comando"
+                if confirmed_state != state:
+                    logger.warning(
+                        f"Toggle '{device.name}': comando={'ON' if state else 'OFF'}, "
+                        f"hardware confirma={'ON' if confirmed_state else 'OFF'}"
+                    )
+                    return False, f"Comando enviado mas hardware reporta {'ON' if confirmed_state else 'OFF'}"
                 return True, None
             else:
                 return False, "Erro ao executar comando no dispositivo"
@@ -241,6 +245,19 @@ class DeviceService:
         except Exception as e:
             logger.error(f"Erro ao sincronizar device {device_id}: {e}")
             return None
+
+
+    def restore_device_state(self, db: Session, *, device_id: UUID) -> bool:
+        """
+        DEPRECADO — não tem mais efeito.
+        Hardware é a fonte da verdade. Use sync_device_state() para ler o hardware e atualizar o banco.
+        Este método existia para forçar o hardware a seguir o banco (lógica inversa), o que é errado.
+        """
+        logger.warning(
+            f"restore_device_state chamado para {device_id} — "
+            "método deprecado, sem efeito. Use sync_device_state()."
+        )
+        return False
 
 
 # Instância global

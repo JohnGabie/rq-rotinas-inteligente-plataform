@@ -1,6 +1,7 @@
 """
 FastAPI Application Entry Point
 """
+import asyncio
 import traceback
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -22,6 +23,8 @@ async def lifespan(app: FastAPI):
     """Gerencia startup e shutdown da aplicação"""
     # Startup
     logger.info("Iniciando aplicação...")
+    from app.websocket.manager import set_main_loop
+    set_main_loop(asyncio.get_running_loop())
     scheduler_service.start()
     logger.info("Scheduler de rotinas iniciado")
     await monitoring_service.start()

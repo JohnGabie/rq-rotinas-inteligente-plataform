@@ -1,8 +1,9 @@
 """
 WebSocket Connection Manager - Gerencia conexões em tempo real
 """
+import asyncio
 from fastapi import WebSocket
-from typing import Dict, Set
+from typing import Dict, Set, Optional
 import json
 import logging
 
@@ -113,3 +114,30 @@ class ConnectionManager:
 
 # Instância global do gerenciador de conexões
 manager = ConnectionManager()
+
+# Referência ao event loop principal para broadcasts thread-safe
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def set_main_loop(loop: asyncio.AbstractEventLoop):
+    """Armazena referência ao event loop principal (chamar no startup)."""
+    global _main_loop
+    _main_loop = loop
+    logger.info("Event loop principal registrado para broadcasts thread-safe")
+
+
+def broadcast_event_sync(event: str, data: dict):
+    """
+    Broadcast thread-safe para uso em endpoints síncronos (def).
+    Endpoints async devem usar `await manager.broadcast_event()` diretamente.
+    """
+    if _main_loop is not None and _main_loop.is_running():
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast_event(event, data),
+            _main_loop
+        )
+    else:
+        try:
+            asyncio.run(manager.broadcast_event(event, data))
+        except RuntimeError:
+            logger.warning(f"Não foi possível broadcast evento {event}: sem event loop")

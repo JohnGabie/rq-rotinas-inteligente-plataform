@@ -314,6 +314,8 @@ export function useRoutines() {
         title: 'Rotina concluída',
         description: `"${routine.name}" foi executada com sucesso.`,
       });
+
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
     },
     onError: (error: Error) => {
       toast({

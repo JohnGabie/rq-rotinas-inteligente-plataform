@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
-import asyncio
-
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.models.enums import ActivityType
@@ -22,20 +20,7 @@ from app.schemas.routine import (
     RoutineExecuteResponse
 )
 from app.schemas.common import ApiResponse
-from app.websocket.manager import manager
-
-
-def broadcast_event_sync(event: str, data: dict):
-    """Helper para broadcast de evento em contexto síncrono."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(manager.broadcast_event(event, data))
-        else:
-            loop.run_until_complete(manager.broadcast_event(event, data))
-    except RuntimeError:
-        # Se não há event loop, criar um novo
-        asyncio.run(manager.broadcast_event(event, data))
+from app.websocket.manager import manager, broadcast_event_sync
 
 router = APIRouter(prefix="/routines", tags=["Routines"])
 
@@ -371,7 +356,8 @@ async def execute_routine(
     """
     success, result_data = await routine_service.execute_routine(
         db,
-        routine_id=routine_id
+        routine_id=routine_id,
+        user_id=current_user.id
     )
 
     if not success:

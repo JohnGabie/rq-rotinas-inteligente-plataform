@@ -36,7 +36,8 @@ class RoutineService:
             self,
             db: Session,
             *,
-            routine_id: UUID
+            routine_id: UUID,
+            user_id: Optional[UUID] = None
     ) -> Tuple[bool, Dict]:
         """
         Executa uma rotina completa
@@ -149,7 +150,7 @@ class RoutineService:
         # Criar log de atividade
         self._create_execution_log(
             db,
-            user_id=user_id,
+            user_id=user_id or routine.user_id,
             routine=routine,
             executed=executed,
             failed=failed,

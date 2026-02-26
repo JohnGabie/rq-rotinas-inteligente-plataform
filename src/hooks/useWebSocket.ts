@@ -65,6 +65,12 @@ export function useWebSocket() {
 
       ws.current.onmessage = (event) => {
         try {
+          // Responder a heartbeat do servidor
+          if (event.data === 'ping') {
+            ws.current?.send('pong');
+            return;
+          }
+
           const message: WebSocketEvent = JSON.parse(event.data);
           console.log('[WebSocket] Evento recebido:', message.event, message.data);
 
@@ -108,8 +114,12 @@ export function useWebSocket() {
             case 'routine_created':
             case 'routine_updated':
             case 'routine_deleted':
+              queryClient.invalidateQueries({ queryKey: ['routines'] });
+              break;
+
             case 'routine_executed':
               queryClient.invalidateQueries({ queryKey: ['routines'] });
+              queryClient.invalidateQueries({ queryKey: ['devices'] });
               break;
           }
 
