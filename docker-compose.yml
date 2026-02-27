@@ -57,7 +57,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./rotina_inteligente
       dockerfile: Dockerfile
     container_name: rotina_frontend
     restart: unless-stopped
