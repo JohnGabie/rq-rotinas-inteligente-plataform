@@ -1,7 +1,7 @@
 """
 CRUD Activity Log (SQLAlchemy 2.0 async)
 """
-from typing import List
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from uuid import UUID
@@ -26,9 +26,14 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
         return list(result.scalars().all())
 
     async def create_with_user(
-        self, db: AsyncSession, *, obj_in: ActivityLogCreate, user_id: UUID
+        self,
+        db: AsyncSession,
+        *,
+        obj_in: ActivityLogCreate,
+        user_id: UUID,
+        organization_id: Optional[UUID] = None,
     ) -> ActivityLog:
-        log = ActivityLog(**obj_in.model_dump(), user_id=user_id)
+        log = ActivityLog(**obj_in.model_dump(), user_id=user_id, organization_id=organization_id)
         db.add(log)
         await db.commit()
         await db.refresh(log)

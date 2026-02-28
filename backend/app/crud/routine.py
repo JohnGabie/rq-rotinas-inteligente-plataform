@@ -32,11 +32,16 @@ class CRUDRoutine(CRUDBase[Routine, RoutineCreate, RoutineUpdate]):
         return result.scalar_one_or_none()
 
     async def create_with_user(
-        self, db: AsyncSession, *, obj_in: RoutineCreate, user_id: UUID
+        self,
+        db: AsyncSession,
+        *,
+        obj_in: RoutineCreate,
+        user_id: UUID,
+        organization_id: Optional[UUID] = None,
     ) -> Routine:
         actions_data = obj_in.actions
         obj_data = obj_in.model_dump(exclude={"actions"})
-        routine = Routine(**obj_data, user_id=user_id)
+        routine = Routine(**obj_data, user_id=user_id, organization_id=organization_id)
         db.add(routine)
         await db.flush()
         for action_data in actions_data:

@@ -24,6 +24,13 @@ class DeviceSession(BaseModel):
     """
     __tablename__ = "device_sessions"
 
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,  # nullable until migration 0004 runs
+        index=True,
+    )
+
     # Referências
     device_id = Column(
         UUID(as_uuid=True),

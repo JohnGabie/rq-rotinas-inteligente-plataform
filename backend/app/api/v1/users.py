@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_current_active_admin
+from app.api.deps import get_db, get_current_active_admin, get_current_org
 from app.crud.user import crud_user
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserPasswordReset
 from app.schemas.common import ApiResponse
@@ -21,8 +21,9 @@ async def list_users(
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_active_admin),
+    org=Depends(get_current_org),
 ):
-    users = await crud_user.get_multi(db, skip=skip, limit=limit)
+    users = await crud_user.get_by_org(db, organization_id=org.id, skip=skip, limit=limit)
     return ApiResponse(success=True, data=[UserResponse.model_validate(u) for u in users])
 
 

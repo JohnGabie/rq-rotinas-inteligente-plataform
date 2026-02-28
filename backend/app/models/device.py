@@ -15,6 +15,13 @@ class Device(BaseModel):
     """
     __tablename__ = "devices"
 
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,  # nullable until migration 0004 runs
+        index=True,
+    )
+
     # Campos básicos
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)

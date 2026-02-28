@@ -1,9 +1,10 @@
 """
 CRUD User (SQLAlchemy 2.0 async)
 """
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from uuid import UUID
 from app.crud.base import CRUDBase
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -11,6 +12,17 @@ from app.core.security import hash_password, verify_password
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
+
+    async def get_by_org(
+        self, db: AsyncSession, *, organization_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[User]:
+        result = await db.execute(
+            select(User)
+            .where(User.organization_id == organization_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
         result = await db.execute(select(User).where(User.email == email))

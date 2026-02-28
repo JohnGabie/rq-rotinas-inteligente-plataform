@@ -10,8 +10,9 @@ from uuid import UUID
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_current_org
 from app.models.user import User
+from app.models.organization import Organization
 from app.models.enums import ActivityType
 from app.crud.device import crud_device
 from app.crud.activity_log import crud_activity_log
@@ -52,8 +53,11 @@ async def create_device(
     device_in: DeviceCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    device = await crud_device.create_with_user(db, obj_in=device_in, user_id=current_user.id)
+    device = await crud_device.create_with_user(
+        db, obj_in=device_in, user_id=current_user.id, organization_id=org.id
+    )
 
     # Verificar saúde em thread (operação blocking)
     device_id = device.id

@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from uuid import UUID
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_current_org
 from app.models.user import User
+from app.models.organization import Organization
 from app.models.enums import ActivityType
 from app.crud.routine import crud_routine
 from app.services.routine_service import routine_service
@@ -43,8 +44,11 @@ async def create_routine(
     routine_in: RoutineCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
 ):
-    routine = await crud_routine.create_with_user(db, obj_in=routine_in, user_id=current_user.id)
+    routine = await crud_routine.create_with_user(
+        db, obj_in=routine_in, user_id=current_user.id, organization_id=org.id
+    )
 
     await routine_service.create_routine_log(
         db,

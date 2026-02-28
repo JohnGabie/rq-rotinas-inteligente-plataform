@@ -45,9 +45,14 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         return list(result.scalars().all())
 
     async def create_with_user(
-        self, db: AsyncSession, *, obj_in: DeviceCreate, user_id: UUID
+        self,
+        db: AsyncSession,
+        *,
+        obj_in: DeviceCreate,
+        user_id: UUID,
+        organization_id: Optional[UUID] = None,
     ) -> Device:
-        db_obj = Device(**obj_in.model_dump(), user_id=user_id)
+        db_obj = Device(**obj_in.model_dump(), user_id=user_id, organization_id=organization_id)
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)
