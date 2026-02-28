@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user
 from app.crud.user import crud_user
+from app.crud.organization import crud_organization
 from app.schemas.user import UserLogin, LoginResponse, UserResponse
 from app.schemas.common import ApiResponse
 from app.core.security import create_access_token
@@ -23,9 +24,7 @@ async def login(
     credentials: UserLogin,
     db: AsyncSession = Depends(get_db),
 ):
-    user = await crud_user.authenticate(
-        db, email=credentials.email, password=credentials.password
-    )
+    user = await crud_user.authenticate(db, email=credentials.email, password=credentials.password)
 
     if not user:
         raise HTTPException(
@@ -39,7 +38,16 @@ async def login(
             detail="Usuário inativo",
         )
 
-    access_token = create_access_token(data={"sub": str(user.id)})
+    # Build JWT payload with org context
+    token_data: dict = {"sub": str(user.id)}
+
+    if user.organization_id:
+        org = await crud_organization.get(db, id=user.organization_id)
+        if org and org.is_active:
+            token_data["org_id"] = str(org.id)
+            token_data["org_slug"] = org.slug
+
+    access_token = create_access_token(data=token_data)
 
     login_response = LoginResponse(
         access_token=access_token,

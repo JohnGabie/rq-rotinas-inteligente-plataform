@@ -1,7 +1,8 @@
 """
 User Model - Usuários do sistema
 """
-from sqlalchemy import Column, String, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, String, Boolean, Enum as SQLEnum, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 from app.models.enums import UserRole
@@ -16,6 +17,13 @@ class User(BaseModel):
     - activity_logs: Histórico de atividades
     """
     __tablename__ = "users"
+
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,  # nullable until migration 0004 runs
+        index=True,
+    )
 
     email = Column(String(255), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
