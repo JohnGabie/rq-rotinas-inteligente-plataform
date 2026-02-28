@@ -1,8 +1,9 @@
 """
-CRUD Device - Operações de banco para dispositivos
+CRUD Device (SQLAlchemy 2.0 async)
 """
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 
 from app.crud.base import CRUDBase
@@ -12,158 +13,70 @@ from app.models.enums import DeviceStatus
 
 
 class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
-    """CRUD operations for Device"""
 
-    def get_by_user(
-            self,
-            db: Session,
-            *,
-            user_id: UUID,
-            skip: int = 0,
-            limit: int = 100
+    async def get_by_user(
+        self, db: AsyncSession, *, user_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Device]:
-        """
-        Buscar dispositivos de um usuário específico
-
-        Args:
-            db: Database session
-            user_id: UUID do usuário
-            skip: Offset para paginação
-            limit: Quantidade máxima
-
-        Returns:
-            Lista de dispositivos do usuário
-        """
-        return (
-            db.query(Device)
-            .filter(Device.user_id == user_id)
+        result = await db.execute(
+            select(Device)
+            .where(Device.user_id == user_id)
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        return list(result.scalars().all())
 
-    def get_online_devices(
-            self,
-            db: Session,
-            *,
-            user_id: UUID
+    async def get_user_device(
+        self, db: AsyncSession, *, device_id: UUID, user_id: UUID
+    ) -> Optional[Device]:
+        result = await db.execute(
+            select(Device).where(Device.id == device_id, Device.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_online_devices(
+        self, db: AsyncSession, *, user_id: UUID
     ) -> List[Device]:
-        """
-        Buscar apenas dispositivos online de um usuário
-
-        Args:
-            db: Database session
-            user_id: UUID do usuário
-
-        Returns:
-            Lista de dispositivos online
-        """
-        return (
-            db.query(Device)
-            .filter(
+        result = await db.execute(
+            select(Device).where(
                 Device.user_id == user_id,
-                Device.status == DeviceStatus.ONLINE
+                Device.status == DeviceStatus.ONLINE,
             )
-            .all()
         )
+        return list(result.scalars().all())
 
-    def create_with_user(
-            self,
-            db: Session,
-            *,
-            obj_in: DeviceCreate,
-            user_id: UUID
+    async def create_with_user(
+        self, db: AsyncSession, *, obj_in: DeviceCreate, user_id: UUID
     ) -> Device:
-        """
-        Criar dispositivo associado a um usuário
-
-        Args:
-            db: Database session
-            obj_in: DeviceCreate schema
-            user_id: UUID do usuário dono
-
-        Returns:
-            Device criado
-        """
-        obj_in_data = obj_in.model_dump()
-        db_obj = Device(**obj_in_data, user_id=user_id)
+        db_obj = Device(**obj_in.model_dump(), user_id=user_id)
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def update_status(
-            self,
-            db: Session,
-            *,
-            device_id: UUID,
-            status: DeviceStatus,
-            is_on: Optional[bool] = None
+    async def update_status(
+        self,
+        db: AsyncSession,
+        *,
+        device_id: UUID,
+        status: DeviceStatus,
+        is_on: Optional[bool] = None,
     ) -> Optional[Device]:
-        """
-        Atualizar status e estado de um dispositivo
-
-        Args:
-            db: Database session
-            device_id: UUID do dispositivo
-            status: Novo status (online/offline)
-            is_on: Estado ligado/desligado (opcional)
-
-        Returns:
-            Device atualizado ou None
-        """
-        device = db.query(Device).filter(Device.id == device_id).first()
-
+        result = await db.execute(select(Device).where(Device.id == device_id))
+        device = result.scalar_one_or_none()
         if device:
             device.status = status
             if is_on is not None:
                 device.is_on = is_on
-
             db.add(device)
-            db.commit()
-            db.refresh(device)
-
+            await db.commit()
+            await db.refresh(device)
         return device
 
-    def get_all_online_devices(
-            self,
-            db: Session
-    ) -> List[Device]:
-        """Buscar todos os dispositivos online (sem filtro de usuário)"""
-        return (
-            db.query(Device)
-            .filter(Device.status == DeviceStatus.ONLINE)
-            .all()
+    async def get_all_online_devices(self, db: AsyncSession) -> List[Device]:
+        result = await db.execute(
+            select(Device).where(Device.status == DeviceStatus.ONLINE)
         )
-
-    def get_user_device(
-            self,
-            db: Session,
-            *,
-            device_id: UUID,
-            user_id: UUID
-    ) -> Optional[Device]:
-        """
-        Buscar dispositivo específico de um usuário
-        Garante que o device pertence ao usuário
-
-        Args:
-            db: Database session
-            device_id: UUID do dispositivo
-            user_id: UUID do usuário
-
-        Returns:
-            Device ou None
-        """
-        return (
-            db.query(Device)
-            .filter(
-                Device.id == device_id,
-                Device.user_id == user_id
-            )
-            .first()
-        )
+        return list(result.scalars().all())
 
 
-# Instância global do CRUD
 crud_device = CRUDDevice(Device)

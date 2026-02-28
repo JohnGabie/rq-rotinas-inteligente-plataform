@@ -1,8 +1,9 @@
 """
-CRUD User - Operações específicas de usuário
+CRUD User (SQLAlchemy 2.0 async)
 """
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.crud.base import CRUDBase
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -10,83 +11,44 @@ from app.core.security import hash_password, verify_password
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
-    """CRUD operations for User"""
 
-    def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
-        """
-        Buscar usuário por email
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
+        result = await db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
 
-        Args:
-            db: Database session
-            email: Email do usuário
-
-        Returns:
-            User ou None
-        """
-        return db.query(User).filter(User.email == email).first()
-
-    def create(self, db: Session, *, obj_in: UserCreate) -> User:
-        """
-        Criar usuário com senha hasheada
-
-        Args:
-            db: Database session
-            obj_in: UserCreate schema
-
-        Returns:
-            User criado
-        """
+    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         db_obj = User(
             email=obj_in.email,
             name=obj_in.name,
             password_hash=hash_password(obj_in.password),
-            role=obj_in.role
+            role=obj_in.role,
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def authenticate(
-            self,
-            db: Session,
-            *,
-            email: str,
-            password: str
+    async def authenticate(
+        self, db: AsyncSession, *, email: str, password: str
     ) -> Optional[User]:
-        """
-        Autenticar usuário (verifica email e senha)
-
-        Args:
-            db: Database session
-            email: Email do usuário
-            password: Senha em texto plano
-
-        Returns:
-            User se credenciais válidas, None caso contrário
-        """
-        user = self.get_by_email(db, email=email)
-
+        user = await self.get_by_email(db, email=email)
         if not user:
             return None
-
         if not verify_password(password, user.password_hash):
             return None
-
         return user
 
-    def update_password(self, db: Session, *, user: User, new_password: str) -> User:
-        """Forçar troca de senha de um usuário (admin)"""
+    async def update_password(
+        self, db: AsyncSession, *, user: User, new_password: str
+    ) -> User:
         user.password_hash = hash_password(new_password)
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         return user
 
     def is_active(self, user: User) -> bool:
-        """Verifica se usuário está ativo"""
         return user.is_active
 
 
-# Instância global do CRUD
 crud_user = CRUDUser(User)

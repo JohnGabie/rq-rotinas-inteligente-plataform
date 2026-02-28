@@ -2,7 +2,7 @@
 Base Model com campos comuns (id, timestamps)
 Todos os models herdam desta classe
 """
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from zoneinfo import ZoneInfo

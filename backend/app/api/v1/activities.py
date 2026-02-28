@@ -1,8 +1,8 @@
 """
-Activity Log Endpoints - Histórico de atividades
+Activity Log Endpoints (async)
 """
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.api.deps import get_db, get_current_user
@@ -15,75 +15,33 @@ router = APIRouter(prefix="/activities", tags=["Activity Logs"])
 
 
 @router.get("", response_model=ApiResponse[PaginatedResponse[ActivityLogResponse]])
-def list_activities(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-        skip: int = 0,
-        limit: int = 50
+async def list_activities(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 50,
 ):
-    """
-    Listar logs de atividade do usuário
-
-    **Query Parameters:**
-    - skip: Offset para paginação (default: 0)
-    - limit: Quantidade máxima (default: 50, max: 100)
-
-    **Returns:**
-    - Lista de logs ordenados por mais recente primeiro
-    - Total de logs do usuário
-    """
-    # Limitar máximo de 100
     limit = min(limit, 100)
 
-    # Buscar logs
-    logs = crud_activity_log.get_by_user(
-        db,
-        user_id=current_user.id,
-        skip=skip,
-        limit=limit
+    logs = await crud_activity_log.get_by_user(
+        db, user_id=current_user.id, skip=skip, limit=limit
     )
+    total = await crud_activity_log.get_count_by_user(db, user_id=current_user.id)
 
-    # Contar total
-    total = crud_activity_log.get_count_by_user(
-        db,
-        user_id=current_user.id
-    )
-
-    # Converter para response com timestamp
-    log_responses = [
-        ActivityLogResponse.from_orm_with_timestamp(log)
-        for log in logs
-    ]
-
-    paginated = PaginatedResponse(
-        items=log_responses,
-        total=total,
-        limit=limit,
-        offset=skip
-    )
+    log_responses = [ActivityLogResponse.from_orm_with_timestamp(log) for log in logs]
 
     return ApiResponse(
         success=True,
-        data=paginated
+        data=PaginatedResponse(items=log_responses, total=total, limit=limit, offset=skip),
     )
 
 
 @router.delete("", response_model=ApiResponse[None])
-def clear_activities(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+async def clear_activities(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """
-    Limpar logs de atividade
-    Mantém apenas os 100 mais recentes
-    """
-    deleted = crud_activity_log.delete_old_logs(
-        db,
-        user_id=current_user.id,
-        keep_last=100
+    deleted = await crud_activity_log.delete_old_logs(
+        db, user_id=current_user.id, keep_last=100
     )
-
-    return ApiResponse(
-        success=True,
-        message=f"{deleted} log(s) removido(s)"
-    )
+    return ApiResponse(success=True, message=f"{deleted} log(s) removido(s)")
