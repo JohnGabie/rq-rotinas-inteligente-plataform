@@ -20,7 +20,8 @@ from app.core.config import settings
 
 # Import todos os models para Alembic detectar
 from app.models import (
-    User, Device, Routine, RoutineAction, ActivityLog, DeviceSession
+    User, Device, Routine, RoutineAction, ActivityLog, DeviceSession,
+    Organization, InviteToken,
 )
 
 # this is the Alembic Config object

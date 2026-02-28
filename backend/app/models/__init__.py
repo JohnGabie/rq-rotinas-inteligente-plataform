@@ -18,6 +18,8 @@ from app.models.device import Device
 from app.models.routine import Routine, RoutineAction
 from app.models.activity_log import ActivityLog
 from app.models.device_session import DeviceSession, TriggerSource
+from app.models.organization import Organization, PlanType
+from app.models.invite import InviteToken
 
 __all__ = [
     "BaseModel",
@@ -36,4 +38,7 @@ __all__ = [
     "ActivityLog",
     "DeviceSession",
     "TriggerSource",
+    "Organization",
+    "PlanType",
+    "InviteToken",
 ]
