@@ -1,8 +1,8 @@
 """
 API Dependencies (SQLAlchemy 2.0 async)
 """
-from typing import AsyncGenerator
-from fastapi import Depends, HTTPException, status
+from typing import AsyncGenerator, Callable
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -63,3 +63,54 @@ async def get_current_active_admin(
             detail="Privilégios de administrador necessários",
         )
     return current_user
+
+
+async def get_current_org(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Resolve a organização do contexto atual (injetada pelo TenantMiddleware via JWT).
+    Levanta 403 se não houver org_id no token.
+    """
+    from app.crud.organization import crud_organization
+    from app.models.organization import Organization
+
+    org_id_str = getattr(request.state, "org_id", None)
+    if not org_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Contexto de organização ausente no token",
+        )
+
+    try:
+        org_id = UUID(org_id_str)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="org_id inválido no token")
+
+    org = await crud_organization.get(db, id=org_id)
+    if not org or not org.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organização inativa ou não encontrada",
+        )
+    return org
+
+
+def require_module(module_name: str) -> Callable:
+    """
+    Factory de dependency: verifica se o plano da organização inclui o módulo.
+
+    Uso:
+        @router.get("/endpoint")
+        async def endpoint(org = Depends(require_module("rotina_inteligente"))):
+            ...
+    """
+    async def checker(org=Depends(get_current_org)):
+        if not org.has_module(module_name):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Módulo '{module_name}' não disponível no plano atual",
+            )
+        return org
+    return checker

@@ -11,6 +11,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.rate_limit import limiter
+from app.core.middleware import TenantMiddleware
 from app.api.v1.router import api_router
 from app.websocket.routes import router as ws_router
 from app.services.scheduler_service import scheduler_service
@@ -54,6 +55,10 @@ app = FastAPI(
 # Rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# TenantMiddleware: extrai org_id do JWT e injeta em request.state
+# Deve vir ANTES do CORSMiddleware (middlewares são aplicados de baixo para cima)
+app.add_middleware(TenantMiddleware)
 
 # Configurar CORS
 app.add_middleware(
