@@ -1,7 +1,10 @@
 services:
+  # ---------------------------------------------------------------
+  # Database
+  # ---------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
-    container_name: rotina_postgres
+    container_name: zionhub_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-rotina_user}
@@ -14,7 +17,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - rotina_network
+      - zionhub_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rotina_user}"]
       interval: 10s
@@ -26,12 +29,16 @@ services:
           memory: 512M
           cpus: '1.0'
 
+  # ---------------------------------------------------------------
+  # Backend (FastAPI)
+  # network_mode: host — acesso direto ao hardware local (Tuya/SNMP)
+  # ---------------------------------------------------------------
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
       network: host
-    container_name: rotina_backend
+    container_name: zionhub_backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
     network_mode: host
@@ -55,16 +62,21 @@ services:
           memory: 512M
           cpus: '1.0'
 
-  frontend:
+  # ---------------------------------------------------------------
+  # Frontend apps
+  # Cada app serve na porta 80 internamente; o nginx proxy faz o roteamento.
+  # ---------------------------------------------------------------
+
+  # rotina_inteligente — app principal de automação
+  # Path após Task #8: ./apps/rotina_inteligente
+  rotina:
     build:
       context: ./rotina_inteligente
       dockerfile: Dockerfile
-    container_name: rotina_frontend
+    container_name: zionhub_rotina
     restart: unless-stopped
-    ports:
-      - "8080:80"
-    extra_hosts:
-      - "backend:host-gateway"
+    networks:
+      - zionhub_network
     environment:
       TZ: America/Sao_Paulo
     depends_on:
@@ -80,9 +92,109 @@ services:
           memory: 128M
           cpus: '0.5'
 
+  # mix_page — app do mixer de áudio
+  # Path após Task #8: ./apps/mix_page
+  mix:
+    build:
+      context: ./mix_page
+      dockerfile: Dockerfile
+    container_name: zionhub_mix
+    restart: unless-stopped
+    networks:
+      - zionhub_network
+    environment:
+      TZ: America/Sao_Paulo
+    depends_on:
+      - backend
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+
+  # menu — hub central (login + listagem de módulos)
+  # Criado em Task #8; descomente quando apps/menu/ existir
+  # menu:
+  #   build:
+  #     context: ./apps/menu
+  #     dockerfile: Dockerfile
+  #   container_name: zionhub_menu
+  #   restart: unless-stopped
+  #   networks:
+  #     - zionhub_network
+  #   environment:
+  #     TZ: America/Sao_Paulo
+  #   depends_on:
+  #     - backend
+  #   read_only: true
+  #   tmpfs:
+  #     - /var/cache/nginx
+  #     - /var/run
+  #     - /tmp
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 128M
+  #         cpus: '0.5'
+
+  # landpage — página pública por domínio customizado
+  # Criado em Task #8; descomente quando apps/landpage/ existir
+  # landpage:
+  #   build:
+  #     context: ./apps/landpage
+  #     dockerfile: Dockerfile
+  #   container_name: zionhub_landpage
+  #   restart: unless-stopped
+  #   networks:
+  #     - zionhub_network
+  #   environment:
+  #     TZ: America/Sao_Paulo
+  #   depends_on:
+  #     - backend
+  #   read_only: true
+  #   tmpfs:
+  #     - /var/cache/nginx
+  #     - /var/run
+  #     - /tmp
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 128M
+  #         cpus: '0.5'
+
+  # ---------------------------------------------------------------
+  # Nginx Proxy — roteamento multi-domínio
+  # Expõe porta 8080 (HTTP); em produção use 80 + TLS via certbot
+  # ---------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: zionhub_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - zionhub_network
+    depends_on:
+      - rotina
+      - mix
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+
 volumes:
   postgres_data:
 
 networks:
-  rotina_network:
+  zionhub_network:
     driver: bridge
