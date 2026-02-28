@@ -68,10 +68,9 @@ services:
   # ---------------------------------------------------------------
 
   # rotina_inteligente — app principal de automação
-  # Path após Task #8: ./apps/rotina_inteligente
   rotina:
     build:
-      context: ./rotina_inteligente
+      context: ./apps/rotina_inteligente
       dockerfile: Dockerfile
     container_name: zionhub_rotina
     restart: unless-stopped
@@ -93,10 +92,9 @@ services:
           cpus: '0.5'
 
   # mix_page — app do mixer de áudio
-  # Path após Task #8: ./apps/mix_page
   mix:
     build:
-      context: ./mix_page
+      context: ./apps/mix_page
       dockerfile: Dockerfile
     container_name: zionhub_mix
     restart: unless-stopped
@@ -118,54 +116,52 @@ services:
           cpus: '0.5'
 
   # menu — hub central (login + listagem de módulos)
-  # Criado em Task #8; descomente quando apps/menu/ existir
-  # menu:
-  #   build:
-  #     context: ./apps/menu
-  #     dockerfile: Dockerfile
-  #   container_name: zionhub_menu
-  #   restart: unless-stopped
-  #   networks:
-  #     - zionhub_network
-  #   environment:
-  #     TZ: America/Sao_Paulo
-  #   depends_on:
-  #     - backend
-  #   read_only: true
-  #   tmpfs:
-  #     - /var/cache/nginx
-  #     - /var/run
-  #     - /tmp
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 128M
-  #         cpus: '0.5'
+  menu:
+    build:
+      context: ./apps/menu
+      dockerfile: Dockerfile
+    container_name: zionhub_menu
+    restart: unless-stopped
+    networks:
+      - zionhub_network
+    environment:
+      TZ: America/Sao_Paulo
+    depends_on:
+      - backend
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
 
   # landpage — página pública por domínio customizado
-  # Criado em Task #8; descomente quando apps/landpage/ existir
-  # landpage:
-  #   build:
-  #     context: ./apps/landpage
-  #     dockerfile: Dockerfile
-  #   container_name: zionhub_landpage
-  #   restart: unless-stopped
-  #   networks:
-  #     - zionhub_network
-  #   environment:
-  #     TZ: America/Sao_Paulo
-  #   depends_on:
-  #     - backend
-  #   read_only: true
-  #   tmpfs:
-  #     - /var/cache/nginx
-  #     - /var/run
-  #     - /tmp
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 128M
-  #         cpus: '0.5'
+  landpage:
+    build:
+      context: ./apps/landpage
+      dockerfile: Dockerfile
+    container_name: zionhub_landpage
+    restart: unless-stopped
+    networks:
+      - zionhub_network
+    environment:
+      TZ: America/Sao_Paulo
+    depends_on:
+      - backend
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
 
   # ---------------------------------------------------------------
   # Nginx Proxy — roteamento multi-domínio
@@ -186,6 +182,8 @@ services:
     depends_on:
       - rotina
       - mix
+      - menu
+      - landpage
     deploy:
       resources:
         limits:
