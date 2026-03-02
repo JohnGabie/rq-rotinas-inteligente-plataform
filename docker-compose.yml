@@ -13,7 +13,7 @@ services:
       TZ: America/Sao_Paulo
       PGTZ: America/Sao_Paulo
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -45,7 +45,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-rotina_user}:${POSTGRES_PASSWORD:-rotina_password}@localhost:5432/${POSTGRES_DB:-rotina_inteligente_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rotina_user}:${POSTGRES_PASSWORD:-rotina_password}@localhost:5433/${POSTGRES_DB:-rotina_inteligente_db}
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       TUYA_API_KEY: ${TUYA_API_KEY:-}
       TUYA_API_SECRET: ${TUYA_API_SECRET:-}
@@ -76,6 +76,8 @@ services:
     restart: unless-stopped
     networks:
       - zionhub_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TZ: America/Sao_Paulo
     depends_on:
@@ -100,6 +102,8 @@ services:
     restart: unless-stopped
     networks:
       - zionhub_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TZ: America/Sao_Paulo
     depends_on:
@@ -124,6 +128,8 @@ services:
     restart: unless-stopped
     networks:
       - zionhub_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TZ: America/Sao_Paulo
     depends_on:
@@ -148,6 +154,8 @@ services:
     restart: unless-stopped
     networks:
       - zionhub_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TZ: America/Sao_Paulo
     depends_on:
