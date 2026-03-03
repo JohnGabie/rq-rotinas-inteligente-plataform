@@ -146,26 +146,11 @@ services:
           cpus: '0.5'
 
   # marketing — site do ZionHub (zionhub.app)
-  marketing:
-    build:
-      context: ./apps/marketing
-      dockerfile: Dockerfile
-    container_name: zionhub_marketing
-    restart: unless-stopped
-    networks:
-      - zionhub_network
-    environment:
-      TZ: America/Sao_Paulo
-    read_only: true
-    tmpfs:
-      - /var/cache/nginx
-      - /var/run
-      - /tmp
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.5'
+  # TODO: mover para repo separado (zionhub-marketing) — fora do escopo desta etapa
+  # marketing:
+  #   build:
+  #     context: ./apps/marketing
+  #     dockerfile: Dockerfile
 
   # ---------------------------------------------------------------
   # Nginx Proxy — roteamento multi-domínio
@@ -187,7 +172,6 @@ services:
       - rotina
       - mix
       - menu
-      - marketing
     deploy:
       resources:
         limits:
