@@ -27,3 +27,6 @@ dist-ssr
 *.py[cod]
 *$py.class
 /.claude/
+/apps/marketing/
+/apps/rotina_inteligente/
+/apps/marketing/
