@@ -5,12 +5,17 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.crud.base import CRUDBase
 from app.models.user import User
+from app.models.enums import UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password, verify_password
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     """CRUD operations for User"""
+
+    def get_admin(self, db: Session) -> Optional[User]:
+        """Retorna o primeiro usuário com role admin"""
+        return db.query(User).filter(User.role == UserRole.ADMIN).first()
 
     def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
         """

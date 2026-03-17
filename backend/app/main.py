@@ -28,10 +28,15 @@ async def _restore_devices_state():
     Solução: ao iniciar, re-aplica o último estado salvo no banco para todos os dispositivos SNMP
     que estavam desligados (is_on=False), garantindo que o hardware reflita o estado esperado.
     Dispositivos que estavam ligados (is_on=True) não são alterados.
+    Cada restauração é registrada no activity_logs para auditoria.
     """
     from app.core.database import SessionLocal
     from app.crud.device import crud_device
+    from app.crud.activity_log import crud_activity_log
+    from app.crud.user import crud_user
     from app.services.snmp_service import snmp_service
+    from app.schemas.activity_log import ActivityLogCreate
+    from app.models.enums import ActivityType
 
     db = SessionLocal()
     try:
@@ -44,6 +49,14 @@ async def _restore_devices_state():
 
         logger.info(f"🔌 Startup restore: restaurando {len(to_restore)} dispositivo(s) para OFF...")
 
+        # Buscar usuário admin para associar os logs de sistema
+        admin_user = crud_user.get_admin(db)
+        if not admin_user:
+            admin_user = crud_user.get_multi(db, skip=0, limit=1)[0]
+
+        restored = []
+        failed = []
+
         for device in to_restore:
             try:
                 success = await asyncio.to_thread(
@@ -55,10 +68,42 @@ async def _restore_devices_state():
                 )
                 if success:
                     logger.info(f"🔌 Startup restore: '{device.name}' → OFF ✅")
+                    restored.append(device.name)
+                    crud_activity_log.create_with_user(
+                        db,
+                        obj_in=ActivityLogCreate(
+                            type=ActivityType.STARTUP_RESTORE,
+                            title="Restauração no startup",
+                            description="Dispositivo estava ligado após reinicialização do servidor. Estado anterior (OFF) re-aplicado automaticamente.",
+                            device_id=device.id,
+                            device_name=device.name,
+                        ),
+                        user_id=admin_user.id
+                    )
                 else:
                     logger.warning(f"🔌 Startup restore: '{device.name}' → falha ao desligar")
+                    failed.append(device.name)
             except Exception as e:
                 logger.error(f"🔌 Startup restore: erro em '{device.name}': {e}")
+                failed.append(device.name)
+
+        # Log de resumo
+        parts = [f"{len(restored)} dispositivo(s) restaurado(s) para OFF"]
+        if failed:
+            parts.append(f"{len(failed)} falha(s): {', '.join(failed)}")
+        summary = " | ".join(parts)
+
+        crud_activity_log.create_with_user(
+            db,
+            obj_in=ActivityLogCreate(
+                type=ActivityType.STARTUP_RESTORE,
+                title="Startup restore concluído",
+                description=summary,
+            ),
+            user_id=admin_user.id
+        )
+        logger.info(f"🔌 Startup restore concluído: {summary}")
+
     except Exception as e:
         logger.error(f"🔌 Startup restore: erro ao buscar dispositivos: {e}")
     finally:

@@ -73,6 +73,7 @@ class ActivityType(str, enum.Enum):
     ROUTINE_DELETED = "routine_deleted"
     ROUTINE_EXECUTED = "routine_executed"
     MASTER_SWITCH = "master_switch"
+    STARTUP_RESTORE = "startup_restore"
 
 
 class UserRole(str, enum.Enum):
