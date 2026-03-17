@@ -18,6 +18,53 @@ from app.services.monitoring_service import monitoring_service
 from app.utils.logger import logger
 
 
+async def _restore_devices_state():
+    """
+    Restaura estado dos dispositivos no hardware ao iniciar.
+
+    Problema: após queda de energia, algumas réguas SNMP voltam com todas as tomadas ligadas,
+    independente do estado anterior. Isso ignora os desligamentos agendados (ex: rotinas noturnas).
+
+    Solução: ao iniciar, re-aplica o último estado salvo no banco para todos os dispositivos SNMP
+    que estavam desligados (is_on=False), garantindo que o hardware reflita o estado esperado.
+    Dispositivos que estavam ligados (is_on=True) não são alterados.
+    """
+    from app.core.database import SessionLocal
+    from app.crud.device import crud_device
+    from app.services.snmp_service import snmp_service
+
+    db = SessionLocal()
+    try:
+        devices = crud_device.get_multi(db, skip=0, limit=1000)
+        to_restore = [d for d in devices if d.is_snmp and not d.is_on]
+
+        if not to_restore:
+            logger.info("🔌 Startup restore: nenhum dispositivo SNMP para restaurar")
+            return
+
+        logger.info(f"🔌 Startup restore: restaurando {len(to_restore)} dispositivo(s) para OFF...")
+
+        for device in to_restore:
+            try:
+                success = await asyncio.to_thread(
+                    snmp_service.desligar,
+                    ip=str(device.ip),
+                    porta=device.snmp_outlet_number,
+                    community=device.community_string,
+                    base_oid=device.snmp_base_oid
+                )
+                if success:
+                    logger.info(f"🔌 Startup restore: '{device.name}' → OFF ✅")
+                else:
+                    logger.warning(f"🔌 Startup restore: '{device.name}' → falha ao desligar")
+            except Exception as e:
+                logger.error(f"🔌 Startup restore: erro em '{device.name}': {e}")
+    except Exception as e:
+        logger.error(f"🔌 Startup restore: erro ao buscar dispositivos: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gerencia startup e shutdown da aplicação"""
@@ -25,6 +72,7 @@ async def lifespan(app: FastAPI):
     logger.info("Iniciando aplicação...")
     from app.websocket.manager import set_main_loop
     set_main_loop(asyncio.get_running_loop())
+    await _restore_devices_state()
     scheduler_service.start()
     logger.info("Scheduler de rotinas iniciado")
     await monitoring_service.start()
