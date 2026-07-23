@@ -51,26 +51,28 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
     }
   }, [isMobile]);
 
+  // Um único item ativo por vez: um painel aberto tem precedência sobre a aba,
+  // senão dois indicadores acenderiam juntos (e o layoutId do framer-motion
+  // espera um só elemento por vez).
+  const activeKey = historyOpen ? 'history' : moreOpen ? 'more' : activeTab;
+
   const items = [
     {
       key: 'devices',
       label: 'Dispositivos',
       icon: Plug,
-      active: activeTab === 'devices',
       onClick: () => onTabChange('devices'),
     },
     {
       key: 'routines',
       label: 'Rotinas',
       icon: Calendar,
-      active: activeTab === 'routines',
       onClick: () => onTabChange('routines'),
     },
     {
       key: 'history',
       label: 'Histórico',
       icon: History,
-      active: historyOpen,
       badge: logs.length,
       onClick: () => setHistoryOpen(true),
     },
@@ -78,7 +80,6 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
       key: 'more',
       label: 'Mais',
       icon: Menu,
-      active: moreOpen,
       onClick: () => setMoreOpen(true),
     },
   ] as const;
@@ -88,7 +89,9 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
       <nav
         aria-label="Navegação principal"
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 md:hidden',
+          // z acima do overlay do Sheet (z-50) para a barra seguir visível
+          // enquanto um painel está aberto, mantendo a referência de contexto.
+          'fixed inset-x-0 bottom-0 z-[60] md:hidden',
           'border-t border-border bg-card/80 backdrop-blur-lg',
           // Respeita a área segura de aparelhos com gesture bar
           'pb-[env(safe-area-inset-bottom)]'
@@ -98,22 +101,23 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
           {items.map((item) => {
             const Icon = item.icon;
             const badge = 'badge' in item ? item.badge : 0;
+            const isActive = activeKey === item.key;
 
             return (
               <li key={item.key}>
                 <button
                   type="button"
                   onClick={item.onClick}
-                  aria-current={item.active ? 'page' : undefined}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'relative flex h-16 w-full flex-col items-center justify-center gap-1',
                     'transition-colors focus-visible:outline-none focus-visible:ring-2',
                     'focus-visible:ring-ring focus-visible:ring-inset',
-                    item.active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {/* Indicador da seção ativa, deslizando entre os itens */}
-                  {item.active && (
+                  {isActive && (
                     <motion.span
                       layoutId="mobile-nav-indicator"
                       transition={{ type: 'spring', stiffness: 420, damping: 34 }}

@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ActivityLog, ActivityType } from '@/types/activity';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { HistoryDashboard } from './HistoryDashboard';
 
 interface ActivityLogPanelProps {
@@ -143,6 +144,7 @@ export function ActivityLogPanel({
 }: ActivityLogPanelProps) {
   const groupedLogs = groupLogsByDate(logs);
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
@@ -164,7 +166,17 @@ export function ActivityLogPanel({
           </Button>
         </SheetTrigger>
       )}
-      <SheetContent className="w-full sm:max-w-md">
+      {/* No mobile abre como bottom sheet parando acima da barra de navegação
+          (que continua visível para dar referência de onde se está). No desktop
+          segue como gaveta lateral. */}
+      <SheetContent
+        side={isMobile ? 'bottom' : 'right'}
+        className={cn(
+          'w-full sm:max-w-md',
+          isMobile &&
+            'h-[78dvh] rounded-t-xl !bottom-[calc(4rem+env(safe-area-inset-bottom))]'
+        )}
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
