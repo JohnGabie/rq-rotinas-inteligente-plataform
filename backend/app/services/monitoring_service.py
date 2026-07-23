@@ -33,6 +33,8 @@ class MonitoringService:
     Hardware é a fonte da verdade — DB é apenas cache.
     """
 
+    TOGGLE_GRACE_PERIOD = 2.0  # segundos para ignorar broadcast após toggle manual
+
     def __init__(self):
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -40,6 +42,22 @@ class MonitoringService:
         self._check_count = 0
         self._previous_statuses: Dict[str, str] = {}
         self._previous_is_on: Dict[str, Optional[bool]] = {}
+        self._recently_toggled: Dict[str, float] = {}  # device_id → timestamp do toggle
+
+    def mark_toggled(self, device_id: str):
+        """Registra que um dispositivo foi manualmente toggleado. Suprime broadcast por TOGGLE_GRACE_PERIOD."""
+        import time
+        self._recently_toggled[str(device_id)] = time.monotonic()
+
+    def _is_in_grace_period(self, device_key: str) -> bool:
+        import time
+        toggled_at = self._recently_toggled.get(device_key)
+        if toggled_at is None:
+            return False
+        if time.monotonic() - toggled_at < self.TOGGLE_GRACE_PERIOD:
+            return True
+        del self._recently_toggled[device_key]
+        return False
 
     @property
     def is_running(self) -> bool:
@@ -162,14 +180,22 @@ class MonitoringService:
                 # Broadcast quando is_on mudou (inclui startup: None → estado real)
                 # Isso garante que a UI sempre reflete o hardware, mesmo sem interação do usuário
                 if real_is_on != previous_is_on:
-                    logger.info(
-                        f"'{device_name}': is_on {previous_is_on} → {real_is_on} "
-                        f"(detectado pelo monitoramento)"
-                    )
-                    await manager.broadcast_event("device_toggled", {
-                        "device_id": str(device_id),
-                        "is_on": real_is_on
-                    })
+                    if self._is_in_grace_period(device_key):
+                        # Toggle manual recente — atualizar cache interno mas não broadcast
+                        # (frontend já fez optimistic update, evita race condition)
+                        logger.debug(
+                            f"'{device_name}': is_on {previous_is_on} → {real_is_on} "
+                            f"(grace period ativo, broadcast suprimido)"
+                        )
+                    else:
+                        logger.info(
+                            f"'{device_name}': is_on {previous_is_on} → {real_is_on} "
+                            f"(detectado pelo monitoramento)"
+                        )
+                        await manager.broadcast_event("device_toggled", {
+                            "device_id": str(device_id),
+                            "is_on": real_is_on
+                        })
 
                 self._previous_is_on[device_key] = real_is_on
 

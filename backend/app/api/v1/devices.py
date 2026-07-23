@@ -24,6 +24,7 @@ from app.crud.device_session import crud_device_session
 from app.schemas.activity_log import ActivityLogCreate
 from app.models.device_session import TriggerSource
 from app.services.device_service import device_service
+from app.services.monitoring_service import monitoring_service
 from app.schemas.device import (
     DeviceCreate,
     DeviceUpdate,
@@ -342,6 +343,9 @@ def toggle_device(
         ),
         user_id=current_user.id
     )
+
+    # Suprimir broadcast do monitoring por 2s (evita race condition com optimistic update)
+    monitoring_service.mark_toggled(str(device_id))
 
     # Broadcast evento WebSocket
     broadcast_event_sync("device_toggled", {
