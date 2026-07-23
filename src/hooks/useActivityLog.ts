@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalStorage } from './useLocalStorage';
 import { ActivityLog, ActivityType } from '@/types/activity';
@@ -7,6 +7,10 @@ import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiActivityLog } from '@/lib/api/types';
 
 const STORAGE_KEY = 'rotina-inteligente-activity-log';
+// Marca d'água de "notificações dispensadas": logs até este instante ficam
+// ocultos no painel. O histórico no banco NÃO é apagado — ele alimenta o
+// HistoryDashboard e a timeline. Este painel é apenas notificação.
+const CLEARED_AT_KEY = 'rotina-inteligente-activity-cleared-at';
 const MAX_LOGS = 100;
 
 interface AddLogParams {
@@ -26,19 +30,25 @@ const apiActivityToActivity = (apiLog: ApiActivityLog): ActivityLog => ({
   timestamp: apiLog.timestamp,
   deviceName: apiLog.device_name,
   routineName: apiLog.routine_name,
+  userName: apiLog.user_name,
   createdAt: apiLog.created_at,
 });
 
 export function useActivityLog() {
   const queryClient = useQueryClient();
   const [localLogs, setLocalLogs] = useLocalStorage<ActivityLog[]>(STORAGE_KEY, []);
+  const [clearedAt, setClearedAt] = useLocalStorage<number>(CLEARED_AT_KEY, 0);
 
   // Query to fetch activity logs from API
   const { data: logs = [], isLoading, refetch } = useQuery({
     queryKey: ['activities'],
     queryFn: async (): Promise<ActivityLog[]> => {
       // Backend returns paginated response: { items: [], total, limit, offset }
-      const response = await apiClient.get<{ items: ApiActivityLog[]; total: number; limit: number; offset: number }>(API_ENDPOINTS.ACTIVITIES);
+      // limit explícito: o backend usa 50 por padrão (máximo 100), então sem
+      // este parâmetro o painel nunca mostrava mais que 50 registros.
+      const response = await apiClient.get<{ items: ApiActivityLog[]; total: number; limit: number; offset: number }>(
+        `${API_ENDPOINTS.ACTIVITIES}?limit=${MAX_LOGS}`
+      );
       if (response.success && response.data) {
         const activitiesData = response.data.items.map(apiActivityToActivity);
         setLocalLogs(activitiesData); // Cache locally for offline fallback
@@ -74,13 +84,21 @@ export function useActivityLog() {
     return newLog;
   }, [setLocalLogs, queryClient]);
 
+  // Dispensa as notificações: apenas avança a marca d'água local.
+  // Antes zerava o cache sem persistir nada, então o refetch seguinte (disparado
+  // a cada evento do WebSocket) trazia tudo de volta — o botão parecia não funcionar.
   const clearLogs = useCallback(() => {
-    setLocalLogs([]);
-    queryClient.setQueryData(['activities'], []);
-  }, [setLocalLogs, queryClient]);
+    setClearedAt(Date.now());
+  }, [setClearedAt]);
+
+  // Só as notificações posteriores à última limpeza aparecem no painel.
+  const visibleLogs = useMemo(
+    () => logs.filter((log) => log.timestamp > clearedAt),
+    [logs, clearedAt]
+  );
 
   return {
-    logs,
+    logs: visibleLogs,
     isLoading,
     refetch,
     addLog,

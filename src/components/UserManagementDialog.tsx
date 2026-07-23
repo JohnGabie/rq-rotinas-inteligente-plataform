@@ -310,8 +310,28 @@ function DeleteUserAlert({
 
 // ─── Main Component ─────────────────────────────────────────────
 
-export function UserManagementDialog() {
-  const [mainOpen, setMainOpen] = useState(false);
+interface UserManagementDialogProps {
+  /** Controle externo (usado pela barra de navegação mobile). Se omitido, o
+   *  componente gerencia o próprio estado e exibe seu botão de abertura. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Oculta o botão-gatilho quando a abertura vem de fora. */
+  showTrigger?: boolean;
+}
+
+export function UserManagementDialog({
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: UserManagementDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = open !== undefined;
+  const mainOpen = isControlled ? open : internalOpen;
+  const setMainOpen = (value: boolean) => {
+    if (!isControlled) setInternalOpen(value);
+    onOpenChange?.(value);
+  };
 
   // Sub-dialog state
   const [formOpen, setFormOpen] = useState(false);
@@ -359,18 +379,20 @@ export function UserManagementDialog() {
   return (
     <>
       <Dialog open={mainOpen} onOpenChange={setMainOpen}>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </DialogTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Gerenciar Usuários</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {showTrigger && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Gerenciar Usuários</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>

@@ -1,0 +1,70 @@
+name: Deploy
+
+# Roda ao mergear/pushar na main e também manualmente (Actions > Deploy > Run).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nunca cancela um deploy em andamento; enfileira o próximo.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy na VPS
+    # Roda no runner self-hosted instalado no seu PC-servidor (label 'rotina').
+    runs-on: [self-hosted, rotina]
+
+    steps:
+      - name: Atualizar código (git)
+        run: |
+          set -euo pipefail
+          cd "${{ vars.DEPLOY_DIR }}"
+          echo "Diretório de deploy: $(pwd)"
+
+          # Rede de segurança: este diretório também é usado para dev. Se houver
+          # alterações locais não commitadas em arquivos RASTREADOS, salva num
+          # stash antes do reset para não perder nada. (.env e outros arquivos
+          # ignorados não são afetados.)
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            STASH_MSG="deploy-autostash-$(date +%Y%m%d-%H%M%S)"
+            git stash push -m "$STASH_MSG"
+            echo "::warning::Havia alterações locais não commitadas no servidor. Salvas em: git stash ($STASH_MSG). Recupere com 'git stash list' / 'git stash pop'."
+          fi
+
+          git fetch --prune origin
+          git reset --hard origin/main
+          git log --oneline -1
+
+      - name: Subir containers (docker compose)
+        run: |
+          set -euo pipefail
+          cd "${{ vars.DEPLOY_DIR }}"
+          # -p fixa o nome do projeto -> volumes (ex: postgres_data) persistem
+          # entre deploys. DEVE ser 'rq-rotinas-inteligente': é sob esse nome
+          # que já existe o volume do Postgres com os dados reais de produção.
+          docker compose -p rq-rotinas-inteligente --env-file .env up -d --build --remove-orphans
+          docker compose -p rq-rotinas-inteligente ps
+
+      - name: Healthcheck
+        run: |
+          set -euo pipefail
+          # Dá um tempo pro nginx/uvicorn subirem e testa o frontend.
+          for i in $(seq 1 20); do
+            if curl --fail --silent --max-time 5 http://localhost:8080 > /dev/null; then
+              echo "✅ Frontend respondendo em http://localhost:8080"
+              exit 0
+            fi
+            echo "aguardando frontend... ($i/20)"
+            sleep 3
+          done
+          echo "❌ Frontend não respondeu a tempo — veja os logs abaixo"
+          cd "${{ vars.DEPLOY_DIR }}"
+          docker compose -p rq-rotinas-inteligente logs --tail=50
+          exit 1
+
+      - name: Limpar imagens antigas
+        if: always()
+        run: docker image prune -f

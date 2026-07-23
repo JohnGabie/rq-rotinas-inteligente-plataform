@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Plug, Calendar } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -10,6 +10,10 @@ import { RoutineWizard } from '@/components/RoutineWizard';
 import { SearchInput } from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MobileNavBar, type MainTab } from '@/components/MobileNavBar';
+import { ActivityLogList } from '@/components/ActivityLogList';
+import { useActivityLog } from '@/hooks/useActivityLog';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useDevices } from '@/hooks/useDevices';
 import { useRoutines } from '@/hooks/useRoutines';
 import { Device, Routine } from '@/types/device';
@@ -46,6 +50,18 @@ const Index = () => {
     isExecuting,
     executingRoutineId,
   } = useRoutines();
+
+  // Seção ativa: controlada, para que a barra inferior do mobile também a altere
+  const [activeTab, setActiveTab] = useState<MainTab>('devices');
+
+  const { logs, clearLogs } = useActivityLog();
+  const isMobile = useIsMobile();
+
+  // 'history' só existe como seção no mobile; ao ir para o desktop (onde o
+  // histórico volta a ser o painel do header) a aba deixaria de ter conteúdo.
+  useEffect(() => {
+    if (!isMobile && activeTab === 'history') setActiveTab('devices');
+  }, [isMobile, activeTab]);
 
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
@@ -132,7 +148,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      {/* pb extra no mobile: espaço para a barra fixa não cobrir o conteúdo */}
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-24 md:pb-8">
         {/* Stats Summary */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -157,8 +174,13 @@ const Index = () => {
           </div>
         </motion.div>
 
-        <Tabs defaultValue="devices" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-card h-10 sm:h-11">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as MainTab)}
+          className="space-y-4 sm:space-y-6"
+        >
+          {/* No mobile a troca de seção acontece na barra inferior */}
+          <TabsList className="hidden md:grid w-full max-w-md grid-cols-2 bg-card h-10 sm:h-11">
             <TabsTrigger value="devices" className="gap-1.5 sm:gap-2 text-xs sm:text-sm">
               <Plug className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Dispositivos
@@ -413,8 +435,22 @@ const Index = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* Histórico: seção própria no mobile, igual a Dispositivos e Rotinas.
+              No desktop continua sendo o painel aberto pelo header. */}
+          <TabsContent value="history" className="md:hidden space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Histórico</h2>
+              <p className="text-sm text-muted-foreground">
+                {logs.length} {logs.length === 1 ? 'atividade registrada' : 'atividades registradas'}
+              </p>
+            </div>
+            <ActivityLogList logs={logs} onClear={clearLogs} />
+          </TabsContent>
         </Tabs>
       </main>
+
+      <MobileNavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Dialogs */}
       <DeviceFormDialog
