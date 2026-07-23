@@ -10,7 +10,8 @@ export type ActivityType =
   | 'routine_updated'
   | 'routine_deleted'
   | 'routine_executed'
-  | 'master_switch';
+  | 'master_switch'
+  | 'startup_restore';
 
 export interface ActivityLog {
   id: string;

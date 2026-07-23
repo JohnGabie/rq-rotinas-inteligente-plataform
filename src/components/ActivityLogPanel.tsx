@@ -14,7 +14,9 @@ import {
   Clock,
   Zap,
   X,
-  BarChart3
+  BarChart3,
+  RotateCcw,
+  Activity
 } from 'lucide-react';
 import {
   Sheet,
@@ -35,7 +37,18 @@ interface ActivityLogPanelProps {
   onClear: () => void;
 }
 
-const activityConfig: Record<ActivityType, { icon: typeof Power; color: string; label: string }> = {
+type ActivityConfig = { icon: typeof Power; color: string; label: string };
+
+// Fallback para tipos de atividade que o frontend ainda não conhece.
+// O `type` vem da API em runtime: se o backend passar a emitir um tipo novo,
+// o lookup abaixo devolveria undefined e quebraria a renderização.
+const defaultActivityConfig: ActivityConfig = {
+  icon: Activity,
+  color: 'text-muted-foreground',
+  label: 'Atividade',
+};
+
+const activityConfig: Record<ActivityType, ActivityConfig> = {
   device_on: { icon: Power, color: 'text-primary', label: 'Ligado' },
   device_off: { icon: PowerOff, color: 'text-muted-foreground', label: 'Desligado' },
   device_added: { icon: Plus, color: 'text-primary', label: 'Adicionado' },
@@ -48,10 +61,12 @@ const activityConfig: Record<ActivityType, { icon: typeof Power; color: string; 
   routine_deleted: { icon: Trash2, color: 'text-destructive', label: 'Removida' },
   routine_executed: { icon: Zap, color: 'text-accent', label: 'Executada' },
   master_switch: { icon: Zap, color: 'text-primary', label: 'Master Switch' },
+  startup_restore: { icon: RotateCcw, color: 'text-muted-foreground', label: 'Restauração ao iniciar' },
 };
 
 function ActivityItem({ log }: { log: ActivityLog }) {
-  const config = activityConfig[log.type];
+  // Fallback obrigatório: o tipo vem da API, não é garantido em runtime.
+  const config = activityConfig[log.type] ?? defaultActivityConfig;
   const Icon = config.icon;
 
   return (
