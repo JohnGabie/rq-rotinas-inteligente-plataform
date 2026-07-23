@@ -3,7 +3,7 @@ Serviço para controle de dispositivos SNMP
 Baseado no seu protótipo funcional com régua de tomadas
 """
 import subprocess
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.utils.logger import logger
 
@@ -30,7 +30,21 @@ class SNMPService:
         base = base_oid.rstrip('.')
         return f"{base}.{porta + 8}.0"
 
-    def _run_command(self, cmd: list) -> Dict[str, any]:
+    def _common_args(self, community: str) -> List[str]:
+        """
+        Argumentos SNMP comuns a todos os comandos, garantindo que o timeout e o
+        número de retries CONFIGURADOS (settings.SNMP_TIMEOUT / SNMP_RETRIES) sejam
+        de fato aplicados — antes, ligar/desligar/get_status omitiam -t/-r e usavam
+        os defaults do net-snmp, ignorando a configuração.
+        """
+        return [
+            "-v2c",
+            "-c", community,
+            "-t", str(self.timeout),
+            "-r", str(self.retries),
+        ]
+
+    def _run_command(self, cmd: list) -> Dict[str, Any]:
         """
         Executa comando SNMP e retorna resultado estruturado
 
@@ -40,12 +54,18 @@ class SNMPService:
         Returns:
             dict com success, stdout, stderr, returncode
         """
+        # Teto de wall-clock para o subprocess: precisa ser MAIOR que o orçamento
+        # interno do net-snmp (timeout por tentativa × (retries + 1)); caso
+        # contrário o subprocess mataria o snmpget/snmpset no meio das retries.
+        # O +2 é margem para o overhead de processo.
+        subprocess_timeout = self.timeout * (self.retries + 1) + 2
+
         try:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout
+                timeout=subprocess_timeout
             )
 
             success = result.returncode == 0
@@ -95,8 +115,7 @@ class SNMPService:
 
         cmd = [
             "snmpset",
-            "-v2c",
-            "-c", community,
+            *self._common_args(community),
             ip,
             oid,
             "i", "1"  # integer value 1 = ON
@@ -132,8 +151,7 @@ class SNMPService:
 
         cmd = [
             "snmpset",
-            "-v2c",
-            "-c", community,
+            *self._common_args(community),
             ip,
             oid,
             "i", "0"  # integer value 0 = OFF
@@ -169,8 +187,7 @@ class SNMPService:
 
         cmd = [
             "snmpget",
-            "-v2c",
-            "-c", community,
+            *self._common_args(community),
             ip,
             oid
         ]
@@ -211,10 +228,7 @@ class SNMPService:
         """
         cmd = [
             "snmpget",
-            "-v2c",
-            "-c", community,
-            "-t", str(self.timeout),
-            "-r", str(self.retries),
+            *self._common_args(community),
             ip,
             "1.3.6.1.2.1.1.1.0"  # sysDescr.0 (OID universal)
         ]

@@ -63,7 +63,11 @@ async def websocket_endpoint(
                     break
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket, user_id)
+        pass
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
+    finally:
+        # finally garante o disconnect em TODOS os caminhos de saída — inclusive o
+        # 'break' de conexão morta, que antes escapava sem desregistrar o socket
+        # (deixando conexão fantasma no manager até o próximo broadcast limpá-la).
         manager.disconnect(websocket, user_id)
