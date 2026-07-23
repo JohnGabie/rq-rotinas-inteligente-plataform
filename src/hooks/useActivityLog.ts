@@ -30,6 +30,7 @@ const apiActivityToActivity = (apiLog: ApiActivityLog): ActivityLog => ({
   timestamp: apiLog.timestamp,
   deviceName: apiLog.device_name,
   routineName: apiLog.routine_name,
+  userName: apiLog.user_name,
   createdAt: apiLog.created_at,
 });
 

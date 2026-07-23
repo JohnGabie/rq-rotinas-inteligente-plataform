@@ -22,32 +22,31 @@ def list_activities(
         limit: int = 50
 ):
     """
-    Listar logs de atividade do usuário
+    Listar logs de atividade de todos os usuários.
+
+    O sistema é compartilhado — várias pessoas operam os mesmos equipamentos —,
+    então o histórico é comum e cada registro identifica quem executou a ação.
 
     **Query Parameters:**
     - skip: Offset para paginação (default: 0)
     - limit: Quantidade máxima (default: 50, max: 100)
 
     **Returns:**
-    - Lista de logs ordenados por mais recente primeiro
-    - Total de logs do usuário
+    - Lista de logs ordenados por mais recente primeiro, com o autor de cada ação
+    - Total de logs
     """
     # Limitar máximo de 100
     limit = min(limit, 100)
 
-    # Buscar logs
-    logs = crud_activity_log.get_by_user(
+    # Buscar logs (com o autor carregado na mesma query)
+    logs = crud_activity_log.get_multi_with_author(
         db,
-        user_id=current_user.id,
         skip=skip,
         limit=limit
     )
 
     # Contar total
-    total = crud_activity_log.get_count_by_user(
-        db,
-        user_id=current_user.id
-    )
+    total = crud_activity_log.get_count_all(db)
 
     # Converter para response com timestamp
     log_responses = [

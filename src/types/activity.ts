@@ -21,5 +21,7 @@ export interface ActivityLog {
   timestamp: number; // Unix timestamp em ms
   deviceName?: string;
   routineName?: string;
+  /** Quem executou a ação. Ausente em registros antigos. */
+  userName?: string;
   createdAt?: string;
 }

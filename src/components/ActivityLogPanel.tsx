@@ -16,7 +16,8 @@ import {
   X,
   BarChart3,
   RotateCcw,
-  Activity
+  Activity,
+  User as UserIcon
 } from 'lucide-react';
 import {
   Sheet,
@@ -95,11 +96,20 @@ function ActivityItem({ log }: { log: ActivityLog }) {
         <p className="text-xs text-muted-foreground truncate">
           {log.description}
         </p>
-        <div className="flex items-center gap-1.5 mt-1">
-          <Clock className="h-3 w-3 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
           <span className="text-[10px] text-muted-foreground">
             {formatDistanceToNow(log.timestamp, { addSuffix: true, locale: ptBR })}
           </span>
+          {log.userName && (
+            <>
+              <span className="text-[10px] text-muted-foreground/60">•</span>
+              <UserIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground truncate">
+                {log.userName}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </motion.div>

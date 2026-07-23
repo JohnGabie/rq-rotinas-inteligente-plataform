@@ -27,6 +27,8 @@ class ActivityLogResponse(BaseModel):
     description: Optional[str] = None
     device_name: Optional[str] = None
     routine_name: Optional[str] = None
+    # Quem executou a ação. Nulo em registros antigos ou cujo usuário foi removido.
+    user_name: Optional[str] = None
     timestamp: int  # Unix timestamp em millisegundos
     created_at: datetime
 
@@ -43,6 +45,8 @@ class ActivityLogResponse(BaseModel):
             description=log.description,
             device_name=log.device_name,
             routine_name=log.routine_name,
+            # getattr evita quebrar se a relação não tiver sido carregada
+            user_name=getattr(getattr(log, "user", None), "name", None),
             timestamp=int(log.created_at.timestamp() * 1000),
             created_at=log.created_at
         )

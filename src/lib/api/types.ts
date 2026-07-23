@@ -244,6 +244,8 @@ export interface ApiActivityLog {
   description?: string;
   device_name?: string;
   routine_name?: string;
+  /** Quem executou a ação (nulo em registros antigos ou usuário removido). */
+  user_name?: string;
   timestamp: number; // Unix timestamp em ms
   created_at: string;
 }

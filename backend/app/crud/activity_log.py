@@ -2,7 +2,7 @@
 CRUD Activity Log - Operações de banco para logs
 """
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 from datetime import datetime
 
@@ -34,6 +34,33 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
             .limit(limit)
             .all()
         )
+
+    def get_multi_with_author(
+            self,
+            db: Session,
+            *,
+            skip: int = 0,
+            limit: int = 100
+    ) -> List[ActivityLog]:
+        """
+        Buscar logs de TODOS os usuários, ordenados por mais recente primeiro.
+
+        O sistema é compartilhado (várias pessoas operam os mesmos equipamentos),
+        então o histórico mostra quem executou cada ação. O joinedload traz o autor
+        na mesma query, evitando um SELECT por log (N+1).
+        """
+        return (
+            db.query(ActivityLog)
+            .options(joinedload(ActivityLog.user))
+            .order_by(ActivityLog.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_count_all(self, db: Session) -> int:
+        """Contar total de logs de todos os usuários"""
+        return db.query(ActivityLog).count()
 
     def create_with_user(
             self,
