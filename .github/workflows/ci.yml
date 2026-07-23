@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela runs antigos do mesmo branch/PR para economizar minutos de CI.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Frontend (React + Vite + TypeScript)
+  # ----------------------------------------------------------------------------
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # --- Gates duros: falham o CI ---
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit
+
+      - name: Build de produção
+        run: npm run build
+
+      # --- Advisory: rodam e reportam, mas não quebram o CI (ainda) ---
+      # Quando os 7 erros de lint forem resolvidos, remova o continue-on-error
+      # para tornar o lint obrigatório.
+      - name: Lint (eslint)
+        run: npm run lint
+        continue-on-error: true
+
+  # ----------------------------------------------------------------------------
+  # Backend (FastAPI / Python)
+  # ----------------------------------------------------------------------------
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy
+
+      # --- Advisory por enquanto: destrave (remova continue-on-error) quando
+      #     o código estiver limpo nessas checagens. ---
+      - name: Lint (ruff)
+        run: ruff check .
+        continue-on-error: true
+
+      - name: Typecheck (mypy)
+        run: mypy app
+        continue-on-error: true
+
+      - name: Testes (pytest)
+        # Tolera "nenhum teste coletado" (exit code 5) sem falhar o job.
+        run: |
+          set +e
+          pytest
+          code=$?
+          if [ "$code" -eq 5 ]; then
+            echo "::notice::Nenhum teste encontrado ainda — adicione testes em backend/tests/"
+            exit 0
+          fi
+          exit $code
+        continue-on-error: true
