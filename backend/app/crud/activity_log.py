@@ -69,11 +69,21 @@ class CRUDActivityLog(CRUDBase[ActivityLog, ActivityLogCreate, ActivityLogCreate
             keep_last: int = 100
     ) -> int:
         """
-        Deletar logs antigos, mantendo apenas os N mais recentes
+        Deletar logs antigos, mantendo apenas os N mais recentes.
+        keep_last <= 0 remove TODOS os logs do usuário.
 
         Returns:
             int: Quantidade de logs deletados
         """
+        # keep_last <= 0: apagar tudo. Tratado explicitamente para não depender
+        # do comportamento de notin_() com lista vazia.
+        if keep_last <= 0:
+            deleted = db.query(ActivityLog).filter(
+                ActivityLog.user_id == user_id
+            ).delete(synchronize_session=False)
+            db.commit()
+            return deleted
+
         # Buscar IDs dos logs a manter
         logs_to_keep = (
             db.query(ActivityLog.id)

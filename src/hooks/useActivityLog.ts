@@ -38,7 +38,11 @@ export function useActivityLog() {
     queryKey: ['activities'],
     queryFn: async (): Promise<ActivityLog[]> => {
       // Backend returns paginated response: { items: [], total, limit, offset }
-      const response = await apiClient.get<{ items: ApiActivityLog[]; total: number; limit: number; offset: number }>(API_ENDPOINTS.ACTIVITIES);
+      // limit explícito: o backend usa 50 por padrão (máximo 100), então sem
+      // este parâmetro o painel nunca mostrava mais que 50 registros.
+      const response = await apiClient.get<{ items: ApiActivityLog[]; total: number; limit: number; offset: number }>(
+        `${API_ENDPOINTS.ACTIVITIES}?limit=${MAX_LOGS}`
+      );
       if (response.success && response.data) {
         const activitiesData = response.data.items.map(apiActivityToActivity);
         setLocalLogs(activitiesData); // Cache locally for offline fallback
@@ -74,9 +78,20 @@ export function useActivityLog() {
     return newLog;
   }, [setLocalLogs, queryClient]);
 
-  const clearLogs = useCallback(() => {
-    setLocalLogs([]);
-    queryClient.setQueryData(['activities'], []);
+  // Limpa de verdade: apaga no backend e só então zera cache/localStorage.
+  // Antes limpava apenas no cliente, então o próximo refetch (disparado a cada
+  // evento do WebSocket) trazia todos os logs de volta — o botão parecia não funcionar.
+  const clearLogs = useCallback(async () => {
+    try {
+      await apiClient.delete(API_ENDPOINTS.ACTIVITIES);
+      setLocalLogs([]);
+      queryClient.setQueryData<ActivityLog[]>(['activities'], []);
+    } catch (error) {
+      // Falhou no servidor: não limpamos o cache local, senão a UI mentiria
+      // (mostraria vazio e os logs voltariam no refetch seguinte).
+      console.error('[ActivityLog] Falha ao limpar logs no servidor:', error);
+      throw error;
+    }
   }, [setLocalLogs, queryClient]);
 
   return {
