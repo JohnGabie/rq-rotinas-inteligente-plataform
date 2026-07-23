@@ -9,7 +9,8 @@ type WebSocketEvent = {
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
-const RECONNECT_DELAY = 3000; // 3 segundos
+const RECONNECT_BASE_DELAY = 3000; // 3 segundos (delay inicial)
+const RECONNECT_MAX_DELAY = 60000; // teto de 60 segundos entre tentativas
 
 /**
  * Hook para conexão WebSocket em tempo real.
@@ -24,8 +25,33 @@ const RECONNECT_DELAY = 3000; // 3 segundos
 export function useWebSocket() {
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+  // Evita que múltiplos gatilhos (timer, evento 'online', visibilitychange)
+  // criem conexões concorrentes que se acumulam e travam a CPU.
+  const isConnecting = useRef(false);
+  // Fechamento intencional (unmount / disconnect) — impede reconexão automática.
+  const intentionalClose = useRef(false);
+  // Referência estável para connect, usada pelo scheduleReconnect para evitar
+  // dependência circular entre os dois callbacks.
+  const connectRef = useRef<() => void>(() => {});
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
+
+  // Agenda uma reconexão com backoff exponencial (3s, 6s, 12s… até 60s).
+  // Substitui o antigo delay fixo de 3s que martelava o servidor sem parar.
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectTimeout.current) return; // já há uma reconexão agendada
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY * 2 ** reconnectAttempts.current,
+      RECONNECT_MAX_DELAY
+    );
+    reconnectAttempts.current += 1;
+    console.log(`[WebSocket] Reconexão agendada em ${delay}ms`);
+    reconnectTimeout.current = setTimeout(() => {
+      reconnectTimeout.current = null;
+      connectRef.current();
+    }, delay);
+  }, []);
 
   const connect = useCallback(() => {
     // Limpar timeout de reconexão anterior
@@ -34,11 +60,19 @@ export function useWebSocket() {
       reconnectTimeout.current = null;
     }
 
-    // Não reconectar se já conectado
-    if (ws.current?.readyState === WebSocket.OPEN) {
+    // Não criar um socket novo se já existe um conectado ou em processo de
+    // conexão. Sem esta guarda, sockets órfãos se acumulam e cada um dispara
+    // seu próprio loop de reconexão (tempestade de conexões = 100% de CPU).
+    if (
+      isConnecting.current ||
+      ws.current?.readyState === WebSocket.OPEN ||
+      ws.current?.readyState === WebSocket.CONNECTING
+    ) {
       return;
     }
 
+    intentionalClose.current = false;
+    isConnecting.current = true;
     setStatus('connecting');
 
     // Obter token de autenticação
@@ -47,6 +81,7 @@ export function useWebSocket() {
 
     // Não conectar sem token - servidor requer autenticação
     if (!token) {
+      isConnecting.current = false;
       setStatus('disconnected');
       return;
     }
@@ -59,6 +94,8 @@ export function useWebSocket() {
       ws.current = new WebSocket(url);
 
       ws.current.onopen = () => {
+        isConnecting.current = false;
+        reconnectAttempts.current = 0; // reset do backoff ao conectar com sucesso
         setStatus('connected');
         console.log('[WebSocket] Conectado');
       };
@@ -137,27 +174,33 @@ export function useWebSocket() {
       };
 
       ws.current.onclose = (event) => {
+        isConnecting.current = false;
+        ws.current = null;
         setStatus('disconnected');
         console.log('[WebSocket] Desconectado, código:', event.code);
 
-        // Reconectar automaticamente após delay (exceto se fechou intencionalmente)
-        if (event.code !== 1000) {
-          reconnectTimeout.current = setTimeout(() => {
-            console.log('[WebSocket] Tentando reconectar...');
-            connect();
-          }, RECONNECT_DELAY);
+        // Reconectar automaticamente (exceto em fechamento intencional).
+        if (event.code !== 1000 && !intentionalClose.current) {
+          scheduleReconnect();
         }
       };
     } catch (error) {
       console.error('[WebSocket] Erro ao criar conexão:', error);
+      isConnecting.current = false;
+      ws.current = null;
       setStatus('error');
-
-      // Tentar reconectar
-      reconnectTimeout.current = setTimeout(connect, RECONNECT_DELAY);
+      scheduleReconnect();
     }
-  }, [queryClient]);
+  }, [queryClient, scheduleReconnect]);
+
+  // Mantém a referência estável apontando para o connect mais recente.
+  connectRef.current = connect;
 
   const disconnect = useCallback(() => {
+    intentionalClose.current = true;
+    isConnecting.current = false;
+    reconnectAttempts.current = 0;
+
     if (reconnectTimeout.current) {
       clearTimeout(reconnectTimeout.current);
       reconnectTimeout.current = null;
@@ -171,26 +214,31 @@ export function useWebSocket() {
     setStatus('disconnected');
   }, []);
 
-  // Conectar ao montar, desconectar ao desmontar
+  // Conectar ao montar, desconectar ao desmontar.
+  // Deps vazias de propósito: connect/disconnect são estáveis o suficiente e
+  // não queremos que o efeito remonte a conexão a cada render.
   useEffect(() => {
     connect();
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Reconectar quando o usuário ficar online novamente
+  // Reconectar quando a rede voltar ou a aba ficar visível.
+  // Registrado uma única vez: as guardas dentro de connect() já impedem
+  // conexões duplicadas, então não é preciso re-registrar a cada mudança de
+  // status (o que antes remontava listeners a todo instante).
   useEffect(() => {
     const handleOnline = () => {
       console.log('[WebSocket] Rede disponível, reconectando...');
-      connect();
+      connectRef.current();
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && status === 'disconnected') {
-        console.log('[WebSocket] Aba visível, verificando conexão...');
-        connect();
+      if (document.visibilityState === 'visible') {
+        connectRef.current();
       }
     };
 
@@ -201,7 +249,7 @@ export function useWebSocket() {
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [connect, status]);
+  }, []);
 
   return {
     status,
