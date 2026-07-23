@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalStorage } from './useLocalStorage';
 import { ActivityLog, ActivityType } from '@/types/activity';
@@ -7,6 +7,10 @@ import { API_ENDPOINTS } from '@/lib/api/config';
 import { ApiActivityLog } from '@/lib/api/types';
 
 const STORAGE_KEY = 'rotina-inteligente-activity-log';
+// Marca d'água de "notificações dispensadas": logs até este instante ficam
+// ocultos no painel. O histórico no banco NÃO é apagado — ele alimenta o
+// HistoryDashboard e a timeline. Este painel é apenas notificação.
+const CLEARED_AT_KEY = 'rotina-inteligente-activity-cleared-at';
 const MAX_LOGS = 100;
 
 interface AddLogParams {
@@ -32,6 +36,7 @@ const apiActivityToActivity = (apiLog: ApiActivityLog): ActivityLog => ({
 export function useActivityLog() {
   const queryClient = useQueryClient();
   const [localLogs, setLocalLogs] = useLocalStorage<ActivityLog[]>(STORAGE_KEY, []);
+  const [clearedAt, setClearedAt] = useLocalStorage<number>(CLEARED_AT_KEY, 0);
 
   // Query to fetch activity logs from API
   const { data: logs = [], isLoading, refetch } = useQuery({
@@ -78,24 +83,21 @@ export function useActivityLog() {
     return newLog;
   }, [setLocalLogs, queryClient]);
 
-  // Limpa de verdade: apaga no backend e só então zera cache/localStorage.
-  // Antes limpava apenas no cliente, então o próximo refetch (disparado a cada
-  // evento do WebSocket) trazia todos os logs de volta — o botão parecia não funcionar.
-  const clearLogs = useCallback(async () => {
-    try {
-      await apiClient.delete(API_ENDPOINTS.ACTIVITIES);
-      setLocalLogs([]);
-      queryClient.setQueryData<ActivityLog[]>(['activities'], []);
-    } catch (error) {
-      // Falhou no servidor: não limpamos o cache local, senão a UI mentiria
-      // (mostraria vazio e os logs voltariam no refetch seguinte).
-      console.error('[ActivityLog] Falha ao limpar logs no servidor:', error);
-      throw error;
-    }
-  }, [setLocalLogs, queryClient]);
+  // Dispensa as notificações: apenas avança a marca d'água local.
+  // Antes zerava o cache sem persistir nada, então o refetch seguinte (disparado
+  // a cada evento do WebSocket) trazia tudo de volta — o botão parecia não funcionar.
+  const clearLogs = useCallback(() => {
+    setClearedAt(Date.now());
+  }, [setClearedAt]);
+
+  // Só as notificações posteriores à última limpeza aparecem no painel.
+  const visibleLogs = useMemo(
+    () => logs.filter((log) => log.timestamp > clearedAt),
+    [logs, clearedAt]
+  );
 
   return {
-    logs,
+    logs: visibleLogs,
     isLoading,
     refetch,
     addLog,

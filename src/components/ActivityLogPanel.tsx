@@ -30,13 +30,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ActivityLog, ActivityType } from '@/types/activity';
 import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
 import { HistoryDashboard } from './HistoryDashboard';
 
 interface ActivityLogPanelProps {
   logs: ActivityLog[];
-  // Limpar envolve chamada ao servidor e pode falhar.
-  onClear: () => void | Promise<void>;
+  // Dispensa as notificações da vista (não apaga o histórico no servidor).
+  onClear: () => void;
 }
 
 type ActivityConfig = { icon: typeof Power; color: string; label: string };
@@ -122,24 +121,6 @@ function groupLogsByDate(logs: ActivityLog[]) {
 export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
   const groupedLogs = groupLogsByDate(logs);
   const [dashboardOpen, setDashboardOpen] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-
-  const handleClear = async () => {
-    setIsClearing(true);
-    try {
-      await onClear();
-    } catch {
-      // Sem isto, a falha viraria unhandled rejection e o usuário clicaria
-      // em "Limpar" sem qualquer retorno visual.
-      toast({
-        title: 'Não foi possível limpar',
-        description: 'O histórico não pôde ser limpo no servidor. Tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsClearing(false);
-    }
-  };
 
   return (
     <>
@@ -185,12 +166,11 @@ export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleClear}
-                disabled={isClearing}
+                onClick={onClear}
                 className="text-xs gap-2"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                {isClearing ? 'Limpando...' : 'Limpar'}
+                Limpar
               </Button>
             )}
           </div>

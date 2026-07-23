@@ -70,22 +70,17 @@ def list_activities(
 
 @router.delete("", response_model=ApiResponse[None])
 def clear_activities(
-        keep_last: int = 0,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
     """
-    Limpar logs de atividade do usuário.
-
-    - keep_last=0 (padrão): remove TODOS os logs — é o que o botão "Limpar" faz.
-    - keep_last=N: poda os antigos, preservando os N mais recentes.
-
-    Antes o endpoint forçava keep_last=100, então "Limpar" nunca limpava de fato.
+    Limpar logs de atividade
+    Mantém apenas os 100 mais recentes
     """
     deleted = crud_activity_log.delete_old_logs(
         db,
         user_id=current_user.id,
-        keep_last=keep_last
+        keep_last=100
     )
 
     return ApiResponse(
