@@ -40,6 +40,10 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-rotina_user}:${POSTGRES_PASSWORD:-rotina_password}@localhost:5432/${POSTGRES_DB:-rotina_inteligente_db}
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
+      # Duração da sessão em minutos. Sem isto o backend nunca enxergava a
+      # variável (o .env da raiz não é montado no container) e ficava preso no
+      # padrão. 43200 = 30 dias.
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-43200}
       TUYA_API_KEY: ${TUYA_API_KEY:-}
       TUYA_API_SECRET: ${TUYA_API_SECRET:-}
       ENVIRONMENT: ${ENVIRONMENT:-production}
