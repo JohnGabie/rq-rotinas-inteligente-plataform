@@ -23,6 +23,17 @@ jobs:
           set -euo pipefail
           cd "${{ vars.DEPLOY_DIR }}"
           echo "Diretório de deploy: $(pwd)"
+
+          # Rede de segurança: este diretório também é usado para dev. Se houver
+          # alterações locais não commitadas em arquivos RASTREADOS, salva num
+          # stash antes do reset para não perder nada. (.env e outros arquivos
+          # ignorados não são afetados.)
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            STASH_MSG="deploy-autostash-$(date +%Y%m%d-%H%M%S)"
+            git stash push -m "$STASH_MSG"
+            echo "::warning::Havia alterações locais não commitadas no servidor. Salvas em: git stash ($STASH_MSG). Recupere com 'git stash list' / 'git stash pop'."
+          fi
+
           git fetch --prune origin
           git reset --hard origin/main
           git log --oneline -1
@@ -32,9 +43,10 @@ jobs:
           set -euo pipefail
           cd "${{ vars.DEPLOY_DIR }}"
           # -p fixa o nome do projeto -> volumes (ex: postgres_data) persistem
-          # entre deploys, independente do caminho.
-          docker compose -p rotina --env-file .env up -d --build --remove-orphans
-          docker compose -p rotina ps
+          # entre deploys. DEVE ser 'rq-rotinas-inteligente': é sob esse nome
+          # que já existe o volume do Postgres com os dados reais de produção.
+          docker compose -p rq-rotinas-inteligente --env-file .env up -d --build --remove-orphans
+          docker compose -p rq-rotinas-inteligente ps
 
       - name: Healthcheck
         run: |
@@ -50,7 +62,7 @@ jobs:
           done
           echo "❌ Frontend não respondeu a tempo — veja os logs abaixo"
           cd "${{ vars.DEPLOY_DIR }}"
-          docker compose -p rotina logs --tail=50
+          docker compose -p rq-rotinas-inteligente logs --tail=50
           exit 1
 
       - name: Limpar imagens antigas
