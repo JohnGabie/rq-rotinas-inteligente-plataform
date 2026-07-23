@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <!-- Green rounded square (primary/20 approximated as solid at lower opacity) -->
+  <rect x="106" y="106" width="300" height="300" rx="60" fill="#10b981" fill-opacity="0.25"/>
+  <!-- Zap / lightning bolt (Lucide Zap path scaled to center) -->
+  <!-- Lucide Zap: M13 2L3 14h9l-1 8 10-12h-9l1-8z, viewBox 0 0 24 24 -->
+  <!-- Scale from 24x24 to ~200x200, centered at 256,256 -->
+  <g transform="translate(256,256) scale(9.5) translate(-12,-12)">
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+          fill="#10b981"
+          stroke="none"/>
+  </g>
+</svg>
