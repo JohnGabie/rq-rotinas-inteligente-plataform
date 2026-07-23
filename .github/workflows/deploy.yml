@@ -1,0 +1,58 @@
+name: Deploy
+
+# Roda ao mergear/pushar na main e também manualmente (Actions > Deploy > Run).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nunca cancela um deploy em andamento; enfileira o próximo.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy na VPS
+    # Roda no runner self-hosted instalado no seu PC-servidor (label 'rotina').
+    runs-on: [self-hosted, rotina]
+
+    steps:
+      - name: Atualizar código (git)
+        run: |
+          set -euo pipefail
+          cd "${{ vars.DEPLOY_DIR }}"
+          echo "Diretório de deploy: $(pwd)"
+          git fetch --prune origin
+          git reset --hard origin/main
+          git log --oneline -1
+
+      - name: Subir containers (docker compose)
+        run: |
+          set -euo pipefail
+          cd "${{ vars.DEPLOY_DIR }}"
+          # -p fixa o nome do projeto -> volumes (ex: postgres_data) persistem
+          # entre deploys, independente do caminho.
+          docker compose -p rotina --env-file .env up -d --build --remove-orphans
+          docker compose -p rotina ps
+
+      - name: Healthcheck
+        run: |
+          set -euo pipefail
+          # Dá um tempo pro nginx/uvicorn subirem e testa o frontend.
+          for i in $(seq 1 20); do
+            if curl --fail --silent --max-time 5 http://localhost:8080 > /dev/null; then
+              echo "✅ Frontend respondendo em http://localhost:8080"
+              exit 0
+            fi
+            echo "aguardando frontend... ($i/20)"
+            sleep 3
+          done
+          echo "❌ Frontend não respondeu a tempo — veja os logs abaixo"
+          cd "${{ vars.DEPLOY_DIR }}"
+          docker compose -p rotina logs --tail=50
+          exit 1
+
+      - name: Limpar imagens antigas
+        if: always()
+        run: docker image prune -f
