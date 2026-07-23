@@ -36,6 +36,12 @@ interface ActivityLogPanelProps {
   logs: ActivityLog[];
   // Dispensa as notificações da vista (não apaga o histórico no servidor).
   onClear: () => void;
+  /** Controle externo (usado pela barra de navegação mobile). Se omitido, o
+   *  Sheet gerencia o próprio estado. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Oculta o botão-gatilho quando a abertura vem de fora. */
+  showTrigger?: boolean;
 }
 
 type ActivityConfig = { icon: typeof Power; color: string; label: string };
@@ -118,28 +124,36 @@ function groupLogsByDate(logs: ActivityLog[]) {
   }));
 }
 
-export function ActivityLogPanel({ logs, onClear }: ActivityLogPanelProps) {
+export function ActivityLogPanel({
+  logs,
+  onClear,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: ActivityLogPanelProps) {
   const groupedLogs = groupLogsByDate(logs);
   const [dashboardOpen, setDashboardOpen] = useState(false);
 
   return (
     <>
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8 sm:h-9 sm:w-9 relative"
-          aria-label="Ver histórico de atividades"
-        >
-          <History className="h-4 w-4 sm:h-5 sm:w-5" />
-          {logs.length > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
-              {logs.length > 99 ? '99+' : logs.length}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 sm:h-9 sm:w-9 relative"
+            aria-label="Ver histórico de atividades"
+          >
+            <History className="h-4 w-4 sm:h-5 sm:w-5" />
+            {logs.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
+                {logs.length > 99 ? '99+' : logs.length}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">

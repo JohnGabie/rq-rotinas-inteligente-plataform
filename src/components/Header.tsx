@@ -36,7 +36,8 @@ export function Header() {
           </div>
         </motion.div>
 
-        <nav className="flex items-center gap-1.5 sm:gap-2">
+        {/* No mobile estas ações vivem na barra inferior (MobileNavBar) */}
+        <nav className="hidden md:flex items-center gap-1.5 sm:gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
