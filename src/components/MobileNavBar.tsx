@@ -9,7 +9,6 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ActivityLogPanel } from '@/components/ActivityLogPanel';
 import { UserManagementDialog } from '@/components/UserManagementDialog';
 import { useTheme } from '@/hooks/useTheme';
 import { useNotificationContext } from '@/contexts/NotificationContext';
@@ -18,7 +17,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
-export type MainTab = 'devices' | 'routines';
+export type MainTab = 'devices' | 'routines' | 'history';
 
 interface MobileNavBarProps {
   activeTab: MainTab;
@@ -31,13 +30,12 @@ interface MobileNavBarProps {
  * mantendo-os ao alcance do polegar.
  */
 export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { enabled: notificationsEnabled, toggleNotifications, permission } = useNotificationContext();
-  const { logs, clearLogs } = useActivityLog();
+  const { logs } = useActivityLog();
   const { logout, user } = useAuthContext();
   const isMobile = useIsMobile();
 
@@ -45,42 +43,50 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
   // alcança: ao passar para desktop um painel aberto continuaria na tela.
   useEffect(() => {
     if (!isMobile) {
-      setHistoryOpen(false);
       setMoreOpen(false);
       setUsersOpen(false);
     }
   }, [isMobile]);
 
-  // Um único item ativo por vez: um painel aberto tem precedência sobre a aba,
-  // senão dois indicadores acenderiam juntos (e o layoutId do framer-motion
-  // espera um só elemento por vez).
-  const activeKey = historyOpen ? 'history' : moreOpen ? 'more' : activeTab;
+  // 'Mais' é o único item que ainda abre painel; os demais trocam de seção.
+  const activeKey = moreOpen ? 'more' : activeTab;
+
+  // Ir para uma seção fecha o painel 'Mais'. A troca de aba é adiada para o
+  // quadro seguinte: fechar o Sheet devolve o foco e provoca um re-render que,
+  // no mesmo tick, descartava a mudança de aba.
+  const goToTab = (tab: MainTab) => {
+    setMoreOpen(false);
+    requestAnimationFrame(() => onTabChange(tab));
+  };
 
   const items = [
     {
       key: 'devices',
       label: 'Dispositivos',
       icon: Plug,
-      onClick: () => onTabChange('devices'),
+      onClick: () => goToTab('devices'),
     },
     {
       key: 'routines',
       label: 'Rotinas',
       icon: Calendar,
-      onClick: () => onTabChange('routines'),
+      onClick: () => goToTab('routines'),
     },
     {
       key: 'history',
       label: 'Histórico',
       icon: History,
       badge: logs.length,
-      onClick: () => setHistoryOpen(true),
+      onClick: () => goToTab('history'),
     },
     {
       key: 'more',
       label: 'Mais',
       icon: Menu,
-      onClick: () => setMoreOpen(true),
+      onClick: () => {
+        // Alterna: com o painel aberto, tocar de novo o fecha.
+        setMoreOpen((v) => !v);
+      },
     },
   ] as const;
 
@@ -142,18 +148,19 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
         </ul>
       </nav>
 
-      {/* Histórico: mesmo painel do desktop, aberto pela barra */}
-      <ActivityLogPanel
-        logs={logs}
-        onClear={clearLogs}
-        showTrigger={false}
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-      />
-
       {/* Mais: ações que no desktop ficam nos ícones do header */}
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="rounded-t-xl">
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen} modal={false}>
+        <SheetContent
+          side="bottom"
+          onPointerDownOutside={(event) => {
+            // Ver nota em ActivityLogPanel: deixa o toque chegar ao botão da barra.
+            const target = (event.detail?.originalEvent?.target ?? null) as HTMLElement | null;
+            if (target?.closest('nav[aria-label="Navegação principal"]')) {
+              event.preventDefault();
+            }
+          }}
+          className="rounded-t-xl !bottom-[calc(4rem+env(safe-area-inset-bottom))]"
+        >
           <SheetHeader className="text-left">
             <SheetTitle>Mais</SheetTitle>
             <SheetDescription>

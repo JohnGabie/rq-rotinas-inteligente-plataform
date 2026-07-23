@@ -1,0 +1,186 @@
+import { useState } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Power,
+  PowerOff,
+  Plus,
+  Pencil,
+  Trash2,
+  Play,
+  Calendar,
+  Clock,
+  Zap,
+  BarChart3,
+  RotateCcw,
+  Activity,
+  User as UserIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ActivityLog, ActivityType } from '@/types/activity';
+import { cn } from '@/lib/utils';
+import { HistoryDashboard } from './HistoryDashboard';
+
+type ActivityConfig = { icon: typeof Power; color: string; label: string };
+
+// Fallback para tipos de atividade que o frontend ainda não conhece.
+// O `type` vem da API em runtime: se o backend passar a emitir um tipo novo,
+// o lookup abaixo devolveria undefined e quebraria a renderização.
+const defaultActivityConfig: ActivityConfig = {
+  icon: Activity,
+  color: 'text-muted-foreground',
+  label: 'Atividade',
+};
+
+const activityConfig: Record<ActivityType, ActivityConfig> = {
+  device_on: { icon: Power, color: 'text-primary', label: 'Ligado' },
+  device_off: { icon: PowerOff, color: 'text-muted-foreground', label: 'Desligado' },
+  device_added: { icon: Plus, color: 'text-primary', label: 'Adicionado' },
+  device_updated: { icon: Pencil, color: 'text-accent', label: 'Atualizado' },
+  device_deleted: { icon: Trash2, color: 'text-destructive', label: 'Removido' },
+  routine_activated: { icon: Play, color: 'text-primary', label: 'Ativada' },
+  routine_deactivated: { icon: PowerOff, color: 'text-muted-foreground', label: 'Desativada' },
+  routine_created: { icon: Plus, color: 'text-primary', label: 'Criada' },
+  routine_updated: { icon: Pencil, color: 'text-accent', label: 'Atualizada' },
+  routine_deleted: { icon: Trash2, color: 'text-destructive', label: 'Removida' },
+  routine_executed: { icon: Zap, color: 'text-accent', label: 'Executada' },
+  master_switch: { icon: Zap, color: 'text-primary', label: 'Master Switch' },
+  startup_restore: { icon: RotateCcw, color: 'text-muted-foreground', label: 'Restauração ao iniciar' },
+};
+
+function ActivityItem({ log }: { log: ActivityLog }) {
+  // Fallback obrigatório: o tipo vem da API, não é garantido em runtime.
+  const config = activityConfig[log.type] ?? defaultActivityConfig;
+  const Icon = config.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
+    >
+      <div className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary",
+        config.color
+      )}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">
+          {log.title}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">
+          {log.description}
+        </p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">
+            {formatDistanceToNow(log.timestamp, { addSuffix: true, locale: ptBR })}
+          </span>
+          {log.userName && (
+            <>
+              <span className="text-[10px] text-muted-foreground/60">•</span>
+              <UserIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground truncate">
+                {log.userName}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function groupLogsByDate(logs: ActivityLog[]) {
+  const groups: Record<string, ActivityLog[]> = {};
+
+  logs.forEach((log) => {
+    const date = format(new Date(log.timestamp), 'yyyy-MM-dd');
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(log);
+  });
+
+  return Object.entries(groups).map(([date, logs]) => ({
+    date,
+    label: format(new Date(date), "EEEE, d 'de' MMMM", { locale: ptBR }),
+    logs,
+  }));
+}
+
+interface ActivityLogListProps {
+  logs: ActivityLog[];
+  /** Dispensa as notificações da vista (não apaga o histórico no servidor). */
+  onClear: () => void;
+}
+
+/**
+ * Lista de atividades com as ações de dashboard e limpar.
+ * Compartilhada entre o painel lateral do desktop e a seção Histórico do mobile,
+ * para que as duas apresentações nunca divirjam.
+ */
+export function ActivityLogList({ logs, onClear }: ActivityLogListProps) {
+  const groupedLogs = groupLogsByDate(logs);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => setDashboardOpen(true)}
+          className="flex-1 text-xs gap-2"
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+          Ver Dashboard Completo
+        </Button>
+        {logs.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClear}
+            className="text-xs gap-2"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Limpar
+          </Button>
+        )}
+      </div>
+
+      <AnimatePresence mode="popLayout">
+        {logs.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-sm font-medium text-foreground">Nenhuma atividade</p>
+            <p className="text-xs text-muted-foreground">
+              As atividades aparecerão aqui
+            </p>
+          </motion.div>
+        ) : (
+          <div className="space-y-6">
+            {groupedLogs.map(({ date, label, logs }) => (
+              <div key={date} className="space-y-2">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {label}
+                </h3>
+                <div className="space-y-2">
+                  {logs.map((log) => (
+                    <ActivityItem key={log.id} log={log} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
+
+      <HistoryDashboard open={dashboardOpen} onOpenChange={setDashboardOpen} />
+    </div>
+  );
+}
